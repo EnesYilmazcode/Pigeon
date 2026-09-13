@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pigeon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{
+  --ivory:#FAF9F5; --panel:#F0EEE6; --raised:#FFFFFF;
+  --ink:#141413; --ink-2:#3D3C38; --muted:#6F6E69; --faint:#9A9891;
+  --line:#E3E0D6; --line-soft:#EDEAE1;
+  --clay:#C15F3C; --clay-bg:#F6E7DF;
+  --moss:#4F6B44; --moss-bg:#E6EDE1;
+  --rust:#A63A30; --rust-bg:#F6E2DF;
+  --ochre:#836318; --ochre-bg:#F2EBD8;
+  --focus:#D97757; --r:8px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ivory:#1F1E1D; --panel:#262624; --raised:#2B2A28;
+    --ink:#F5F4EF; --ink-2:#D9D7D0; --muted:#A3A29C; --faint:#77756F;
+    --line:#3A3936; --line-soft:#322F2D;
+    --clay:#E28A66; --clay-bg:#40291F;
+    --moss:#9DBE8C; --moss-bg:#26301F;
+    --rust:#E08A80; --rust-bg:#3B211E;
+    --ochre:#D3B36B; --ochre-bg:#352C15;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ivory:#1F1E1D; --panel:#262624; --raised:#2B2A28;
+  --ink:#F5F4EF; --ink-2:#D9D7D0; --muted:#A3A29C; --faint:#77756F;
+  --line:#3A3936; --line-soft:#322F2D;
+  --clay:#E28A66; --clay-bg:#40291F;
+  --moss:#9DBE8C; --moss-bg:#26301F;
+  --rust:#E08A80; --rust-bg:#3B211E;
+  --ochre:#D3B36B; --ochre-bg:#352C15;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ivory);color:var(--ink);
+  font-family:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+/* Half the things here set their own display, which beats the hidden
+   attribute. Without this a "closed" panel still takes up room. */
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* icons */
+.i{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;
+   stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.i-sm{width:13px;height:13px}
+
+.app{display:flex;flex-direction:column;height:100%}
+.topbar{display:flex;align-items:center;gap:22px;padding:12px 18px;
+  border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap}
+.wordmark{font-family:"Source Serif 4",Georgia,serif;font-size:18px;font-weight:600;
+  letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.wordmark .dot{width:8px;height:8px;border-radius:50%;background:var(--clay);flex:none}
+.counts{display:flex;gap:16px;flex-wrap:wrap}
+.count{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.count b{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.count .cd{width:7px;height:7px;border-radius:50%;flex:none}
+.spacer{flex:1}
+
+.split{display:flex;flex:1;min-height:0}
+/* The rail gives ground before the email does, but never below readable. */
+.rail{width:clamp(232px,22vw,308px);flex:none;border-right:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0}
+
+.list{overflow-y:auto;flex:1;padding-bottom:20px}
+.grouphead{display:flex;align-items:center;gap:7px;padding:12px 12px 5px;
+  position:sticky;top:0;background:var(--ivory);border-bottom:1px solid var(--line-soft)}
+.grouphead .co{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.grouphead .n{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+/* One line per person. The role is a click away, so the name gets the room. */
+.row{display:block;width:100%;text-align:left;border:none;background:none;
+  padding:8px 12px;cursor:pointer;border-left:2px solid transparent}
+.row:hover{background:var(--panel)}
+.row[aria-current="true"]{background:var(--panel);border-left-color:var(--clay)}
+.row .r1{display:flex;align-items:center;gap:8px}
+.row .ord{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;
+  width:12px;flex:none;text-align:right}
+.row[aria-current="true"] .ord{color:var(--clay)}
+.row .nm{font-size:13.5px;font-weight:500;flex:1;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.row .when{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;flex:none}
+.pill{font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;
+  border-radius:20px;flex:none;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.p-queued{background:var(--clay-bg);color:var(--clay)}
+.p-sent{background:var(--line-soft);color:var(--muted)}
+.p-replied,.p-converted{background:var(--moss-bg);color:var(--moss)}
+.p-bounced,.p-dead{background:var(--rust-bg);color:var(--rust)}
+.p-hold{background:var(--ochre-bg);color:var(--ochre)}
+.d-queued{background:var(--clay)} .d-sent{background:var(--faint)}
+.d-replied,.d-converted{background:var(--moss)}
+.d-bounced,.d-dead{background:var(--rust)} .d-hold{background:var(--ochre)}
+
+/* detail: the email gets the whole column */
+.detail{flex:1;overflow-y:auto;min-width:0}
+.dwrap{padding:20px 24px 56px}
+.dmain{min-width:0}
+
+.dhead{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.dhead h1{font-family:"Source Serif 4",Georgia,serif;font-size:25px;font-weight:600;
+  margin:0;letter-spacing:-.015em;min-width:0;overflow-wrap:anywhere}
+.dsub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  color:var(--muted);font-size:13px;margin:0 0 12px}
+.dsub .addr{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;
+  color:var(--clay);overflow-wrap:anywhere;display:inline-flex;align-items:center;gap:5px}
+.dsub .sep{color:var(--line)}
+.dhead h1 a{color:inherit;text-decoration:none;display:inline-flex;align-items:baseline;gap:7px}
+.dhead h1 a:hover{text-decoration:underline;text-underline-offset:3px}
+.dhead h1 a .i{width:15px;height:15px;color:var(--faint);align-self:center}
+.dhead h1 a:hover .i{color:var(--clay)}
+
+.warn{display:flex;gap:9px;align-items:flex-start;background:var(--ochre-bg);
+  color:var(--ochre);border-radius:var(--r);padding:10px 12px;
+  font-size:12.5px;line-height:1.5;margin-bottom:14px}
+.warn .i{margin-top:2px}
+
+.subjline{display:flex;gap:8px;align-items:center;border:1px solid var(--line);
+  border-radius:var(--r) var(--r) 0 0;padding:6px 6px 6px 12px;
+  background:var(--panel);border-bottom:none}
+.subjline input{flex:1;min-width:0;border:none;background:none;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;padding:3px 0}
+.bodybox{border:1px solid var(--line);border-radius:0 0 var(--r) var(--r);
+  background:var(--raised);overflow:hidden}
+.bodybox textarea{width:100%;border:none;background:none;padding:16px 18px;
+  resize:vertical;min-height:240px;display:block;overflow:hidden;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;line-height:1.75}
+
+.empty{padding:56px 30px;color:var(--muted);max-width:440px}
+.empty h2{font-family:"Source Serif 4",Georgia,serif;font-size:19px;font-weight:600;
+  color:var(--ink);margin:0 0 6px}
+.empty code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;color:var(--clay)}
+
+@media (max-width:1000px){
+  .dwrap{padding:18px 18px 50px}
+  .dhead h1{font-size:22px}
+  .topbar{gap:14px;padding:10px 14px}
+}
+@media (max-width:760px){
+  /* The counts are a nice-to-have, the wordmark is not. */
+  .counts{display:none}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="ic-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></symbol>
+<symbol id="ic-link" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></symbol>
+<symbol id="ic-warn" viewBox="0 0 24 24"><path d="m10.3 3.9-8.5 14.1A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="ic-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+</defs></svg>
+
+<div class="app">
+  <header class="topbar">
+    <div class="wordmark"><span class="dot"></span>Pigeon</div>
+    <div class="counts" id="counts"></div>
+    <div class="spacer"></div>
+  </header>
+
+  <div class="split" id="split">
+    <nav class="rail">
+      <div class="list" id="list"></div>
+    </nav>
+    <main class="detail" id="detail"></main>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STATUSES = ["queued","sent","replied","converted","bounced","hold","dead"];
+  var LABEL = {queued:"To send", sent:"Sent", replied:"Replied", converted:"Converted",
+               bounced:"Bounced", hold:"Held", dead:"Dead"};
+
+  var contacts = [], selId = null, loaded = false, failed = null;
+
+  var el = {};
+  ["list","detail","counts","split"]
+    .forEach(function(k){ el[k] = document.getElementById(k); });
+
+  function esc(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function ico(name, cls){
+    return '<svg class="i ' + (cls||"") + '"><use href="#ic-' + name + '"/></svg>';
+  }
+  function shortDate(iso){
+    if(!iso) return "";
+    var p = String(iso).slice(0,10).split("-");
+    if(p.length !== 3) return "";
+    var m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    var i = parseInt(p[1],10) - 1;
+    return (i >= 0 && i < 12) ? m[i] + " " + parseInt(p[2],10) : "";
+  }
+  function get(id){
+    for(var i = 0; i < contacts.length; i++) if(contacts[i].id === id) return contacts[i];
+    return null;
+  }
+
+  function sortFn(a,b){
+    // sendOrder is the queue. Anyone without one sinks below all of it.
+    var oa = a.sendOrder || 9999, ob = b.sendOrder || 9999;
+    if(oa !== ob) return oa - ob;
+    var ca = a.company || "", cb = b.company || "";
+    if(ca !== cb) return ca.localeCompare(cb);
+    return (a.name||"").localeCompare(b.name||"");
+  }
+  function passes(c){
+    return c.status !== "dead";
+  }
+  function groupKey(c){
+    return c.sendWhen || "No order set";
+  }
+
+  function renderCounts(){
+    var q = 0, s = 0, r = 0;
+    contacts.forEach(function(c){
+      if(c.status === "queued") q++;
+      if(["sent","replied","converted"].indexOf(c.status) > -1) s++;
+      if(["replied","converted"].indexOf(c.status) > -1) r++;
+    });
+    el.counts.innerHTML =
+      '<span class="count"><i class="cd d-queued"></i><b>'+q+'</b>to send</span>' +
+      '<span class="count"><i class="cd d-sent"></i><b>'+s+'</b>sent</span>' +
+      '<span class="count"><i class="cd d-replied"></i><b>'+r+'</b>replied</span>';
+  }
+  function renderList(){
+    if(failed || !loaded){ el.list.innerHTML = ''; return; }
+    var rows = contacts.filter(passes).slice().sort(sortFn);
+    if(!rows.length){
+      el.list.innerHTML = '<div style="padding:18px 12px;color:var(--faint);font-size:12.5px">No contacts yet</div>';
+      return;
+    }
+    var html = "", last = null;
+    rows.forEach(function(c){
+      var k = groupKey(c);
+      if(k !== last){
+        last = k;
+        var g = rows.filter(function(x){ return groupKey(x) === k; });
+        html += '<div class="grouphead">' +
+          '<span class="co">'+esc(k)+'</span><span class="n">'+g.length+'</span></div>';
+      }
+      var hover = c.name + (c.role ? ", " + c.role : "") + (c.company ? " at " + c.company : "");
+      html += '<button class="row" data-id="'+esc(c.id)+
+        '" title="'+esc(hover)+'" aria-current="'+(c.id===selId)+'">' +
+        '<div class="r1">' +
+        '<span class="ord">'+(c.sendOrder || "")+'</span>' +
+        '<span class="nm">'+esc(c.name)+'</span>' +
+        (c.sentAt ? '<span class="when">'+esc(shortDate(c.sentAt))+'</span>' : '') +
+        '<span class="pill p-'+esc(c.status)+'">'+esc(LABEL[c.status]||c.status)+'</span>' +
+        '</div></button>';
+    });
+    el.list.innerHTML = html;
+  }
+
+  function renderDetail(){
+    if(failed){
+      el.detail.innerHTML = '<div class="empty"><h2>Server stopped</h2>' +
+        '<p>Start it again from the Pigeon folder: <code>python serve.py</code></p></div>';
+      return;
+    }
+    var c = get(selId);
+    if(!c){ el.detail.innerHTML = '<div class="empty"></div>'; return; }
+
+    var isMail = (c.channel || "email") === "email";
+    var addr = isMail ? (c.email || "no address on file")
+                      : (c.channel === "linkedin" ? "LinkedIn" : c.channel);
+
+    var main = '<div class="dhead"><h1>' +
+        (c.profileUrl
+          ? '<a href="'+esc(c.profileUrl)+'" target="_blank" rel="noopener" title="Open profile">' +
+            esc(c.name || "Untitled") + ico("link","i-sm") + '</a>'
+          : esc(c.name || "Untitled")) +
+      '</h1></div>' +
+      '<div class="dsub">' +
+        '<span>' + esc(c.role) + '</span>' +
+        '<span class="sep">/</span>' +
+        '<span>' + esc(c.company) + '</span>' +
+        '<span class="sep">/</span>' +
+        '<span class="addr">' + ico(isMail ? "at" : "link", "i-sm") + esc(addr) + '</span>' +
+        '<span class="pill p-'+esc(c.status)+'">'+esc(LABEL[c.status]||c.status)+'</span>' +
+        (c.applied ? '<span class="pill p-replied">'+ico("check","i-sm")+'Applied</span>' : '') +
+        (isMail && c.email && !c.verified
+          ? '<span class="pill p-hold">'+ico("warn","i-sm")+'Unverified</span>' : '') +
+      '</div>';
+
+    if(c.warning){
+      main += '<div class="warn">' + ico("warn") + '<span>' + esc(c.warning) + '</span></div>';
+    }
+
+    if(isMail){
+      main += '<div class="subjline">' +
+        '<input id="subjEdit" value="'+esc(c.subject||"")+'" placeholder="Subject" readonly></div>';
+    }
+    main += '<div class="bodybox"' + (isMail ? '' : ' style="border-radius:var(--r)"') + '>' +
+      '<textarea id="bodyEdit" readonly>'+esc(c.body||"")+'</textarea></div>';
+
+    el.detail.innerHTML = '<div class="dwrap"><div class="dmain">' + main + '</div></div>';
+    fitBody();
+  }
+
+  // The draft box tracks its own content, so a short email leaves no dead slab
+  // and a long one never needs an inner scrollbar.
+  function fitBody(){
+    var t = document.getElementById("bodyEdit");
+    if(!t) return;
+    t.style.height = "auto";
+    t.style.height = Math.max(240, t.scrollHeight + 2) + "px";
+  }
+
+  function renderAll(){ renderCounts(); renderList(); renderDetail(); }
+
+  function load(){
+    fetch("/api/contacts").then(function(r){
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function(rows){
+      contacts = rows.map(function(o){
+        if(STATUSES.indexOf(o.status) === -1) o.status = "queued";
+        return o;
+      });
+      loaded = true; failed = null;
+      if(!selId){
+        var first = contacts.filter(passes).slice().sort(sortFn)[0];
+        if(first) selId = first.id;
+      }
+      renderAll();
+    }).catch(function(e){
+      failed = String(e && e.message ? e.message : e);
+      loaded = true; renderAll();
+    });
+  }
+
+  el.list.addEventListener("click", function(e){
+    var r = e.target.closest(".row"); if(!r) return;
+    selId = r.getAttribute("data-id");
+    renderList(); renderDetail(); el.detail.scrollTop = 0;
+  });
+
+  renderAll();
+  load();
+})();
+</script>
+</body>
+</html>
