@@ -128,6 +128,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .dmain{min-width:0}
 
 .dhead{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+/* Role and company are edited where they are already shown. */
+.ed{border:1px solid transparent;border-radius:4px;padding:1px 4px;margin:0 -4px;
+  outline:none;cursor:text;white-space:pre-wrap;overflow-wrap:anywhere}
+.ed:hover{border-color:var(--line);background:var(--raised)}
+.ed:focus{border-color:var(--muted);background:var(--raised)}
+.ed:empty::before{content:attr(data-ph);color:var(--faint)}
 .dhead h1{font-family:"Source Serif 4",Georgia,serif;font-size:25px;font-weight:600;
   margin:0;letter-spacing:-.015em;min-width:0;overflow-wrap:anywhere}
 .dsub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
@@ -166,6 +172,10 @@ button.addr:hover{background:var(--clay-bg)}
 .btn-primary{background:var(--clay);border-color:var(--clay);color:#fff;font-weight:500}
 .btn-primary:hover{filter:brightness(1.07)}
 .btn-sm{padding:4px 9px;font-size:12px}
+.savehint{font-size:11.5px;color:var(--faint);margin-left:auto;
+  display:inline-flex;align-items:center;gap:5px}
+.savehint:not(:empty)::before{content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--moss);flex:none}
 
 .empty{padding:56px 30px;color:var(--muted);max-width:440px}
 .empty h2{font-family:"Source Serif 4",Georgia,serif;font-size:19px;font-weight:600;
@@ -273,6 +283,11 @@ button.addr:hover{background:var(--clay-bg)}
     var m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var i = parseInt(p[1],10) - 1;
     return (i >= 0 && i < 12) ? m[i] + " " + parseInt(p[2],10) : "";
+  }
+  function today(){
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") +
+           "-" + String(d.getDate()).padStart(2,"0");
   }
   function copy(text, what){
     if(navigator.clipboard && navigator.clipboard.writeText){
@@ -425,6 +440,11 @@ button.addr:hover{background:var(--clay-bg)}
     var addr = isMail ? (c.email || "no address on file")
                       : (c.channel === "linkedin" ? "LinkedIn" : c.channel);
 
+    function ed(f, ph, val){
+      return '<span class="ed" data-f="' + f + '" data-ph="' + esc(ph) +
+             '" contenteditable="plaintext-only" spellcheck="false">' + esc(val||"") + '</span>';
+    }
+
     var main = '<div class="dhead"><h1>' +
         (c.profileUrl
           ? '<a href="'+esc(c.profileUrl)+'" target="_blank" rel="noopener" title="Open profile">' +
@@ -432,9 +452,9 @@ button.addr:hover{background:var(--clay-bg)}
           : esc(c.name || "Untitled")) +
       '</h1></div>' +
       '<div class="dsub">' +
-        '<span>' + esc(c.role) + '</span>' +
+        ed("role", "Role", c.role) +
         '<span class="sep">/</span>' +
-        '<span>' + esc(c.company) + '</span>' +
+        ed("company", "Company", c.company) +
         '<span class="sep">/</span>' +
         (isMail && c.email
           ? '<button class="addr" data-act="copyemail" title="Copy address">' +
@@ -452,14 +472,15 @@ button.addr:hover{background:var(--clay-bg)}
 
     if(isMail){
       main += '<div class="subjline">' +
-        '<input id="subjEdit" value="'+esc(c.subject||"")+'" placeholder="Subject" readonly>' +
+        '<input id="subjEdit" value="'+esc(c.subject||"")+'" placeholder="Subject" spellcheck="false">' +
         '<button class="btn btn-sm" data-act="copysubj" title="Copy subject">'+ico("copy","i-sm")+'</button></div>';
     }
     main += '<div class="bodybox"' + (isMail ? '' : ' style="border-radius:var(--r)"') + '>' +
-      '<textarea id="bodyEdit" readonly>'+esc(c.body||"")+'</textarea></div>' +
+      '<textarea id="bodyEdit" spellcheck="false">'+esc(c.body||"")+'</textarea></div>' +
       '<div class="actions">' +
         '<button class="btn btn-primary" data-act="copybody">'+ico("copy","i-sm")+'Copy email</button>' +
         (isMail && c.email ? '<a class="btn" href="'+esc(gmailUrl(c))+'" target="_blank" rel="noopener">'+ico("mail","i-sm")+'Gmail</a>' : '') +
+        '<span class="savehint" id="saveHint"></span>' +
       '</div>';
 
     el.detail.innerHTML = '<div class="dwrap"><div class="dmain">' + main + '</div></div>';
@@ -476,6 +497,45 @@ button.addr:hover{background:var(--clay-bg)}
   }
 
   function renderAll(){ renderCounts(); renderList(); renderDetail(); }
+
+  // Everything on this page autosaves. One debounced writer owns the pending
+  // edit so switching contacts or closing the tab cannot strand a keystroke.
+  var pending = null, saveTimer = null;
+
+  function setHint(t){
+    var h = document.getElementById("saveHint");
+    if(h) h.textContent = t;
+  }
+  function queueSave(id, fields){
+    pending = (pending && pending.id === id)
+      ? {id:id, fields:Object.assign(pending.fields, fields)}
+      : {id:id, fields:fields};
+    setHint("Saving");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 600);
+  }
+  function flushSave(){
+    clearTimeout(saveTimer);
+    if(!pending) return Promise.resolve();
+    var p = pending; pending = null;
+    p.fields.updatedAt = today();
+    return patch(p.id, p.fields).then(function(){
+      setHint("Saved");
+      // The sidebar can show a changed name, company or status, but never
+      // re-render the detail pane: it would blow away the caret mid-typing.
+      renderCounts(); renderList();
+    });
+  }
+
+  function patch(id, fields){
+    var c = get(id);
+    if(c) Object.assign(c, fields);
+    return fetch("/api/contacts/" + encodeURIComponent(id), {
+      method: "PUT", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(fields)
+    }).then(function(r){ if(!r.ok) throw new Error("save failed"); })
+      .catch(function(){ toast("Could not save to disk"); });
+  }
 
   function load(){
     fetch("/api/contacts").then(function(r){
@@ -507,6 +567,7 @@ button.addr:hover{background:var(--clay-bg)}
   el.co.addEventListener("change", function(){ company = el.co.value; renderList(); });
   el.list.addEventListener("click", function(e){
     var r = e.target.closest(".row"); if(!r) return;
+    flushSave();
     selId = r.getAttribute("data-id");
     renderList(); renderDetail(); el.detail.scrollTop = 0;
   });
@@ -515,10 +576,46 @@ button.addr:hover{background:var(--clay-bg)}
     var b = e.target.closest("[data-act]"); var c = get(selId);
     if(!b || !c) return;
     var act = b.getAttribute("data-act");
-    if(act === "copysubj") copy(c.subject || "", "Subject");
-    if(act === "copybody") copy(c.body || "", "Email");
+    var subjEl = document.getElementById("subjEdit");
+    var bodyEl = document.getElementById("bodyEdit");
+    if(act === "copysubj") copy(subjEl ? subjEl.value : (c.subject||""), "Subject");
+    if(act === "copybody") copy(bodyEl ? bodyEl.value : (c.body||""), "Email");
     if(act === "copyemail") copy(c.email || "", "Address");
   });
+  el.detail.addEventListener("input", function(e){
+    var c = get(selId); if(!c) return;
+    var t = e.target;
+    if(t.classList && t.classList.contains("ed")){
+      var k = t.getAttribute("data-f");
+      if(!k) return;
+      var g = {}; g[k] = t.textContent;
+      queueSave(c.id, g);
+      return;
+    }
+    var map = {bodyEdit:"body", subjEdit:"subject"};
+    if(!map[t.id]) return;
+    var f = {}; f[map[t.id]] = t.value;
+    queueSave(c.id, f);
+    if(t.id === "bodyEdit") fitBody();
+  });
+  el.detail.addEventListener("keydown", function(e){
+    // A header field is one line. Enter commits it instead of adding a break.
+    if(e.key === "Enter" && e.target.classList && e.target.classList.contains("ed")){
+      e.preventDefault(); e.target.blur();
+    }
+  });
+  // Belt and braces for browsers that ignore contenteditable="plaintext-only".
+  el.detail.addEventListener("paste", function(e){
+    if(!(e.target.classList && e.target.classList.contains("ed"))) return;
+    e.preventDefault();
+    var txt = (e.clipboardData || window.clipboardData).getData("text").replace(/\s+/g, " ");
+    document.execCommand("insertText", false, txt);
+  });
+  el.detail.addEventListener("blur", function(e){
+    if(pending) flushSave();
+  }, true);
+
+  window.addEventListener("beforeunload", function(){ flushSave(); });
 
   renderChips();
   renderAll();
