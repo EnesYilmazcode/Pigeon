@@ -91,6 +91,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .toolrow{display:flex;align-items:center;gap:5px;color:var(--faint)}
 .toolrow select{border:none;background:none;color:var(--muted);font-size:11.5px;cursor:pointer}
 .toolrow #co{min-width:0;max-width:140px;text-overflow:ellipsis}
+.iconbtn{border:none;background:none;color:var(--muted);cursor:pointer;
+  padding:3px;border-radius:5px;display:inline-flex;align-items:center;gap:5px;font-size:11.5px}
+.iconbtn:hover{background:var(--panel);color:var(--ink)}
 
 .list{overflow-y:auto;flex:1;padding-bottom:20px}
 .grouphead{display:flex;align-items:center;gap:7px;padding:12px 12px 5px;
@@ -122,12 +125,27 @@ button,input,select,textarea{font:inherit;color:inherit}
 .d-replied,.d-converted{background:var(--moss)}
 .d-bounced,.d-dead{background:var(--rust)} .d-hold{background:var(--ochre)}
 
-/* detail: the email gets the whole column */
+/* detail: the email gets the whole column, the facts sit behind the i button */
 .detail{flex:1;overflow-y:auto;min-width:0}
 .dwrap{padding:20px 24px 56px}
 .dmain{min-width:0}
 
 .dhead{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.dhead .popwrap{margin-left:auto;position:relative;flex:none}
+.iconbtn.info{width:26px;height:26px;padding:0;justify-content:center;
+  border:1px solid var(--line);border-radius:50%}
+.iconbtn.info:hover{border-color:var(--muted)}
+.iconbtn.info[aria-expanded="true"]{background:var(--panel);border-color:var(--muted);color:var(--ink)}
+.pop{position:absolute;right:0;top:calc(100% + 8px);z-index:30;
+  width:min(340px,calc(100vw - 40px));background:var(--raised);
+  border:1px solid var(--line);border-radius:10px;padding:2px 15px 14px;
+  box-shadow:0 10px 30px rgba(20,20,19,.16);
+  max-height:min(72vh,600px);overflow-y:auto}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .pop{box-shadow:0 10px 32px rgba(0,0,0,.55)}
+}
+:root[data-theme="dark"] .pop{box-shadow:0 10px 32px rgba(0,0,0,.55)}
+
 /* Role and company are edited where they are already shown. */
 .ed{border:1px solid transparent;border-radius:4px;padding:1px 4px;margin:0 -4px;
   outline:none;cursor:text;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -172,6 +190,28 @@ button.addr:hover{background:var(--clay-bg)}
 .btn-primary{background:var(--clay);border-color:var(--clay);color:#fff;font-weight:500}
 .btn-primary:hover{filter:brightness(1.07)}
 .btn-sm{padding:4px 9px;font-size:12px}
+/* the panel behind the i button */
+.srow{display:flex;align-items:center;gap:9px;padding:8px 0;
+  border-bottom:1px solid var(--line-soft)}
+.srow > .i{color:var(--faint)}
+.srow .k{font-size:12.5px;color:var(--muted);flex:none;width:66px}
+.srow .v{flex:1;min-width:0;font-size:13px}
+.srow select,.srow input{width:100%;min-width:0;border:1px solid transparent;
+  border-radius:6px;padding:4px 6px;background:none;font-size:13px;
+  text-overflow:ellipsis}
+.srow select:hover,.srow input:hover{border-color:var(--line);background:var(--raised)}
+.srow select:focus,.srow input:focus{border-color:var(--line);background:var(--raised)}
+.sreq{display:flex;gap:9px;align-items:flex-start;padding:10px 0 12px;
+  font-size:12.5px;line-height:1.5;border-bottom:1px solid var(--line-soft)}
+.sreq .i{margin-top:2px;flex:none}
+.sreq.live .i{color:var(--moss)} .sreq.none .i{color:var(--faint)}
+.sreq a{color:var(--clay)}
+.sreq .none-t{color:var(--muted)}
+.snotes{padding-top:12px;display:flex;flex-direction:column;gap:7px}
+.snotes .lab{display:flex;align-items:center;gap:7px;color:var(--faint);font-size:12px}
+.snotes textarea{width:100%;border:1px solid var(--line);border-radius:var(--r);
+  padding:9px 11px;background:var(--raised);font-size:12.5px;min-height:150px;
+  resize:vertical;line-height:1.55}
 .savehint{font-size:11.5px;color:var(--faint);margin-left:auto;
   display:inline-flex;align-items:center;gap:5px}
 .savehint:not(:empty)::before{content:"";width:6px;height:6px;border-radius:50%;
@@ -208,6 +248,13 @@ button.addr:hover{background:var(--clay-bg)}
 <symbol id="ic-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></symbol>
 <symbol id="ic-link" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></symbol>
 <symbol id="ic-warn" viewBox="0 0 24 24"><path d="m10.3 3.9-8.5 14.1A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="ic-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+<symbol id="ic-noreq" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></symbol>
+<symbol id="ic-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+<symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="ic-note" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h6M8 17h4"/></symbol>
+<symbol id="ic-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1Z"/><path d="M4 22v-7"/></symbol>
+<symbol id="ic-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11.2v5M12 7.7h.01"/></symbol>
 <symbol id="ic-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 </defs></svg>
 
@@ -445,12 +492,41 @@ button.addr:hover{background:var(--clay-bg)}
              '" contenteditable="plaintext-only" spellcheck="false">' + esc(val||"") + '</span>';
     }
 
+    /* ---- the panel behind the i button: only what is not already on screen ---- */
+    var side = "";
+    if(c.reqTitle){
+      var liveReq = c.reqStatus === "live";
+      side += '<div class="sreq ' + (liveReq ? "live" : "none") + '">' +
+        ico(liveReq ? "case" : "noreq") +
+        (c.reqUrl ? '<a href="'+esc(c.reqUrl)+'" target="_blank" rel="noopener">'+esc(c.reqTitle)+'</a>'
+                  : '<span class="' + (liveReq ? "" : "none-t") + '">'+esc(c.reqTitle)+'</span>') +
+        '</div>';
+    }
+    side +=
+      '<div class="srow">'+ico("flag")+'<span class="k">Status</span><span class="v"><select id="stSel">' +
+        STATUSES.map(function(s){ return '<option value="'+s+'"'+(s===c.status?" selected":"")+'>'+LABEL[s]+'</option>'; }).join("") +
+      '</select></span></div>' +
+      '<div class="srow">'+ico("cal")+'<span class="k">Sent</span><span class="v"><input type="date" id="dtSent" value="'+esc((c.sentAt||"").slice(0,10))+'"></span></div>' +
+      '<div class="srow">'+ico("clock")+'<span class="k">Follow up</span><span class="v"><input type="date" id="dtFollow" value="'+esc((c.followUpAt||"").slice(0,10))+'"></span></div>' +
+      // Clicking the address in the header copies it, so it is edited here.
+      '<div class="srow">'+ico("at")+'<span class="k">Address</span><span class="v"><input type="text" id="emEdit" value="'+esc(c.email||"")+'" spellcheck="false"></span></div>' +
+      '<div class="srow">'+ico("link")+'<span class="k">Profile</span><span class="v"><input type="text" id="pfEdit" value="'+esc(c.profileUrl||"")+'" spellcheck="false" placeholder="LinkedIn URL"></span></div>' +
+      '<div class="snotes"><span class="lab">'+ico("note","i-sm")+'Notes</span>' +
+        '<textarea id="noteBox" spellcheck="false">'+esc(c.notes||"")+'</textarea></div>';
+
     var main = '<div class="dhead"><h1>' +
         (c.profileUrl
           ? '<a href="'+esc(c.profileUrl)+'" target="_blank" rel="noopener" title="Open profile">' +
             esc(c.name || "Untitled") + ico("link","i-sm") + '</a>'
           : esc(c.name || "Untitled")) +
-      '</h1></div>' +
+      '</h1>' +
+        '<div class="popwrap">' +
+          '<button class="iconbtn info" id="infoBtn" aria-expanded="false" ' +
+            'title="Status, dates and notes" aria-label="Status, dates and notes">' +
+            ico("info") + '</button>' +
+          '<div class="pop" id="infoPop" hidden>' + side + '</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="dsub">' +
         ed("role", "Role", c.role) +
         '<span class="sep">/</span>' +
@@ -480,11 +556,23 @@ button.addr:hover{background:var(--clay-bg)}
       '<div class="actions">' +
         '<button class="btn btn-primary" data-act="copybody">'+ico("copy","i-sm")+'Copy email</button>' +
         (isMail && c.email ? '<a class="btn" href="'+esc(gmailUrl(c))+'" target="_blank" rel="noopener">'+ico("mail","i-sm")+'Gmail</a>' : '') +
+        (c.status === "queued" ? '<button class="btn" data-act="marksent">'+ico("send","i-sm")+'Sent today</button>' : '') +
         '<span class="savehint" id="saveHint"></span>' +
       '</div>';
 
     el.detail.innerHTML = '<div class="dwrap"><div class="dmain">' + main + '</div></div>';
+    if(infoOpen) setInfo(true);   // survive a re-render while the panel is up
     fitBody();
+  }
+
+  var infoOpen = false;
+  function setInfo(on){
+    var pop = document.getElementById("infoPop");
+    var btn = document.getElementById("infoBtn");
+    infoOpen = !!on && !!pop;
+    if(!pop || !btn) return;
+    pop.hidden = !infoOpen;
+    btn.setAttribute("aria-expanded", String(infoOpen));
   }
 
   // The draft box tracks its own content, so a short email leaves no dead slab
@@ -568,11 +656,13 @@ button.addr:hover{background:var(--clay-bg)}
   el.list.addEventListener("click", function(e){
     var r = e.target.closest(".row"); if(!r) return;
     flushSave();
+    infoOpen = false;
     selId = r.getAttribute("data-id");
     renderList(); renderDetail(); el.detail.scrollTop = 0;
   });
 
   el.detail.addEventListener("click", function(e){
+    if(e.target.closest("#infoBtn")){ setInfo(!infoOpen); return; }
     var b = e.target.closest("[data-act]"); var c = get(selId);
     if(!b || !c) return;
     var act = b.getAttribute("data-act");
@@ -581,6 +671,12 @@ button.addr:hover{background:var(--clay-bg)}
     if(act === "copysubj") copy(subjEl ? subjEl.value : (c.subject||""), "Subject");
     if(act === "copybody") copy(bodyEl ? bodyEl.value : (c.body||""), "Email");
     if(act === "copyemail") copy(c.email || "", "Address");
+    if(act === "marksent"){
+      flushSave();
+      patch(c.id, {status:"sent", sentAt: today(), updatedAt: today()}).then(renderAll);
+      renderAll();
+      toast("Sent " + shortDate(today()));
+    }
   });
   el.detail.addEventListener("input", function(e){
     var c = get(selId); if(!c) return;
@@ -592,7 +688,8 @@ button.addr:hover{background:var(--clay-bg)}
       queueSave(c.id, g);
       return;
     }
-    var map = {bodyEdit:"body", subjEdit:"subject"};
+    var map = {bodyEdit:"body", subjEdit:"subject", noteBox:"notes",
+               emEdit:"email", pfEdit:"profileUrl"};
     if(!map[t.id]) return;
     var f = {}; f[map[t.id]] = t.value;
     queueSave(c.id, f);
@@ -604,6 +701,11 @@ button.addr:hover{background:var(--clay-bg)}
       e.preventDefault(); e.target.blur();
     }
   });
+  // On the document, not the pane: a re-render drops focus and the key would
+  // otherwise land on nothing.
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && infoOpen) setInfo(false);
+  });
   // Belt and braces for browsers that ignore contenteditable="plaintext-only".
   el.detail.addEventListener("paste", function(e){
     if(!(e.target.classList && e.target.classList.contains("ed"))) return;
@@ -611,9 +713,20 @@ button.addr:hover{background:var(--clay-bg)}
     var txt = (e.clipboardData || window.clipboardData).getData("text").replace(/\s+/g, " ");
     document.execCommand("insertText", false, txt);
   });
+  // Anywhere outside the panel closes it, so it never sits over the draft.
+  document.addEventListener("mousedown", function(e){
+    if(infoOpen && !e.target.closest(".popwrap")) setInfo(false);
+  });
   el.detail.addEventListener("blur", function(e){
     if(pending) flushSave();
   }, true);
+
+  el.detail.addEventListener("change", function(e){
+    var c = get(selId); if(!c) return;
+    if(e.target.id === "stSel")    patch(c.id, {status:e.target.value, updatedAt:today()}).then(renderAll);
+    if(e.target.id === "dtSent")   patch(c.id, {sentAt:e.target.value, updatedAt:today()}).then(renderAll);
+    if(e.target.id === "dtFollow") patch(c.id, {followUpAt:e.target.value, updatedAt:today()});
+  });
 
   window.addEventListener("beforeunload", function(){ flushSave(); });
 
