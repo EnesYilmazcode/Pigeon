@@ -94,6 +94,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .iconbtn{border:none;background:none;color:var(--muted);cursor:pointer;
   padding:3px;border-radius:5px;display:inline-flex;align-items:center;gap:5px;font-size:11.5px}
 .iconbtn:hover{background:var(--panel);color:var(--ink)}
+.iconbtn.accent{color:var(--clay);margin-left:auto}
 
 .list{overflow-y:auto;flex:1;padding-bottom:20px}
 .grouphead{display:flex;align-items:center;gap:7px;padding:12px 12px 5px;
@@ -212,6 +213,10 @@ button.addr:hover{background:var(--clay-bg)}
 .snotes textarea{width:100%;border:1px solid var(--line);border-radius:var(--r);
   padding:9px 11px;background:var(--raised);font-size:12.5px;min-height:150px;
   resize:vertical;line-height:1.55}
+.sfoot{padding-top:14px;display:flex}
+.linkbtn{border:none;background:none;color:var(--muted);font-size:12px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;padding:4px 0}
+.linkbtn:hover{color:var(--rust)}
 .savehint{font-size:11.5px;color:var(--faint);margin-left:auto;
   display:inline-flex;align-items:center;gap:5px}
 .savehint:not(:empty)::before{content:"";width:6px;height:6px;border-radius:50%;
@@ -241,6 +246,8 @@ button.addr:hover{background:var(--clay-bg)}
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></symbol>
+<symbol id="ic-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="ic-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 6V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/></symbol>
 <symbol id="ic-sort" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></symbol>
 <symbol id="ic-case" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
 <symbol id="ic-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
@@ -284,6 +291,8 @@ button.addr:hover{background:var(--clay-bg)}
           <select id="co" aria-label="Filter by company">
             <option value="">All companies</option>
           </select>
+          <button class="iconbtn accent" id="addBtn">
+            <svg class="i i-sm"><use href="#ic-plus"/></svg>Add</button>
         </div>
       </div>
       <div class="list" id="list"></div>
@@ -307,7 +316,7 @@ button.addr:hover{background:var(--clay-bg)}
   var query = "", company = "", loaded = false, failed = null;
 
   var el = {};
-  ["list","detail","counts","chips","q","sort","co","split","toast"]
+  ["list","detail","counts","chips","q","sort","co","split","toast","addBtn"]
     .forEach(function(k){ el[k] = document.getElementById(k); });
 
   function esc(s){
@@ -512,7 +521,8 @@ button.addr:hover{background:var(--clay-bg)}
       '<div class="srow">'+ico("at")+'<span class="k">Address</span><span class="v"><input type="text" id="emEdit" value="'+esc(c.email||"")+'" spellcheck="false"></span></div>' +
       '<div class="srow">'+ico("link")+'<span class="k">Profile</span><span class="v"><input type="text" id="pfEdit" value="'+esc(c.profileUrl||"")+'" spellcheck="false" placeholder="LinkedIn URL"></span></div>' +
       '<div class="snotes"><span class="lab">'+ico("note","i-sm")+'Notes</span>' +
-        '<textarea id="noteBox" spellcheck="false">'+esc(c.notes||"")+'</textarea></div>';
+        '<textarea id="noteBox" spellcheck="false">'+esc(c.notes||"")+'</textarea></div>' +
+      '<div class="sfoot"><button class="linkbtn" data-act="del">'+ico("trash","i-sm")+'Delete</button></div>';
 
     var main = '<div class="dhead"><h1>' +
         (c.profileUrl
@@ -653,6 +663,22 @@ button.addr:hover{background:var(--clay-bg)}
   el.q.addEventListener("input", function(){ query = el.q.value.trim().toLowerCase(); renderList(); });
   el.sort.addEventListener("change", function(){ sortMode = el.sort.value; renderList(); });
   el.co.addEventListener("change", function(){ company = el.co.value; renderList(); });
+  el.addBtn.addEventListener("click", function(){
+    var name = prompt("Name");
+    if(!name) return;
+    var id = name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") || ("c" + Date.now());
+    if(get(id)){ toast("Already in the list"); return; }
+    var row = {id:id, name:name, company:"", role:"", email:"", channel:"email",
+      subject:"", body:"", status:"queued", sentAt:"", followUpAt:"", notes:"",
+      reqStatus:"", reqTitle:"", reqUrl:"", warning:"", profileUrl:"", domain:"", logo:"",
+      applied:false, verified:false, rank:50, updatedAt:today()};
+    fetch("/api/contacts", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(row)}).then(function(r){
+      if(!r.ok) throw new Error();
+      contacts.push(row); selId = id;
+      renderAll();
+    }).catch(function(){ toast("Could not add"); });
+  });
   el.list.addEventListener("click", function(e){
     var r = e.target.closest(".row"); if(!r) return;
     flushSave();
@@ -676,6 +702,15 @@ button.addr:hover{background:var(--clay-bg)}
       patch(c.id, {status:"sent", sentAt: today(), updatedAt: today()}).then(renderAll);
       renderAll();
       toast("Sent " + shortDate(today()));
+    }
+    if(act === "del"){
+      if(!confirm("Delete " + c.name + " permanently?")) return;
+      fetch("/api/contacts/" + encodeURIComponent(c.id), {method:"DELETE"}).then(function(r){
+        if(!r.ok) throw new Error();
+        contacts = contacts.filter(function(x){ return x.id !== c.id; });
+        selId = null; renderAll();
+        toast("Deleted");
+      }).catch(function(){ toast("Could not delete"); });
     }
   });
   el.detail.addEventListener("input", function(e){
