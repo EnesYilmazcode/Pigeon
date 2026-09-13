@@ -897,6 +897,14 @@ button.addr:hover{background:var(--clay-bg)}
   });
   el.detail.addEventListener("blur", function(e){
     if(pending) flushSave();
+    // A reload landed while you were typing. Show it now that the caret is gone.
+    if(deferredDetail){
+      deferredDetail = false;
+      setTimeout(function(){
+        var a = document.activeElement;
+        if(!(a && el.detail.contains(a))) renderDetail();
+      }, 0);
+    }
   }, true);
 
   el.detail.addEventListener("change", function(e){
@@ -919,10 +927,11 @@ button.addr:hover{background:var(--clay-bg)}
 
   /* ============================ Claude Code dock ============================
      POSTs to /api/claude/chat and reads the CLI's own JSON stream back a line
-     at a time, so a long turn shows its tool calls while it is still running. */
+     at a time, so a long turn shows its tool calls while it is still running.
+     Whatever it writes to contacts.json is picked up by softLoad below. */
 
   var cc = {open:false, running:false, blocks:{}, tools:{}, sawText:false,
-            wait:null, t0:0, secs:0, cost:null, stopped:false};
+            wait:null, t0:0, snap:null, secs:0, cost:null, stopped:false};
   var ccPinned = true;
 
   // The burst, drawn inline so the empty pane is a mark and not a wall of text.
@@ -989,6 +998,21 @@ button.addr:hover{background:var(--clay-bg)}
     if(name === "WebFetch") return String(input.url||"");
     return "";
   }
+  // Tools that could have touched contacts.json. Whether they actually changed
+  // anything is answered by diffing the file, not by the tool name: half the
+  // edits arrive as a python one-liner through Bash, and half the Bash calls
+  // only read.
+  var CCWRITES = {Edit:1, Write:1, Bash:1, NotebookEdit:1};
+  function diffCount(before, after){
+    var was = {}, seen = {}, n = 0;
+    before.forEach(function(r){ was[r.id] = JSON.stringify(r); });
+    after.forEach(function(r){
+      seen[r.id] = 1;
+      if(was[r.id] !== JSON.stringify(r)) n++;
+    });
+    before.forEach(function(r){ if(!seen[r.id]) n++; });
+    return n;
+  }
   function ccFlat(c){
     if(typeof c === "string") return c;
     if(Array.isArray(c)) return c.map(function(x){ return (x && x.text) || ""; }).join("\n");
@@ -1054,6 +1078,7 @@ button.addr:hover{background:var(--clay-bg)}
       var txt = ccFlat(b.content);
       if(txt) row.title = txt.slice(0, 700);
       if(bad) ccNote(row._name + " failed: " + txt.slice(0, 300), true);
+      else if(CCWRITES[row._name]) scheduleReload();
     });
   }
 
@@ -1107,6 +1132,7 @@ button.addr:hover{background:var(--clay-bg)}
     cc.running = true; cc.blocks = {}; cc.tools = {};
     cc.sawText = false; cc.stopped = false; cc.t0 = Date.now();
     cc.secs = 0; cc.cost = null;
+    try { cc.snap = JSON.parse(JSON.stringify(contacts)); } catch(e){ cc.snap = null; }
     el.ccPane.classList.add("busy"); el.ccPane.classList.remove("err");
     el.ccStat.textContent = "";
     ccGoState();
@@ -1140,12 +1166,43 @@ button.addr:hover{background:var(--clay-bg)}
       if(cc.wait){ cc.wait.remove(); cc.wait = null; }
       el.ccPane.classList.remove("busy");
       ccGoState();
+      return softLoad();
+    }).then(function(){
       var bits = [];
       if(cc.stopped) bits.push("Stopped");
+      var n = cc.snap ? diffCount(cc.snap, contacts) : 0;
+      if(n) bits.push(n + (n === 1 ? " contact changed" : " contacts changed"));
       if(cc.secs) bits.push(cc.secs + "s");
       if(cc.cost != null) bits.push("$" + cc.cost.toFixed(3));
       el.ccStat.textContent = bits.join(" · ");
+      cc.snap = null;
     });
+  }
+
+  // Reload after Claude writes. The detail pane holds a live caret, so it only
+  // re-renders when nothing in it has focus and nothing is waiting to save.
+  var reloadTimer = null, deferredDetail = false;
+  function scheduleReload(){
+    clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(softLoad, 400);
+  }
+  function softLoad(){
+    clearTimeout(reloadTimer);
+    return fetch("/api/contacts").then(function(r){
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function(rows){
+      contacts = rows.map(function(o){
+        if(STATUSES.indexOf(o.status) === -1) o.status = "queued";
+        return o;
+      });
+      loaded = true; failed = null;
+      if(selId && !get(selId)) selId = null;
+      renderCounts(); renderList();
+      var a = document.activeElement;
+      if(pending || (a && el.detail.contains(a))) deferredDetail = true;
+      else renderDetail();
+    }).catch(function(){});
   }
 
   function ccFit(){
