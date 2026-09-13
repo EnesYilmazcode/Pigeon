@@ -130,6 +130,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .detail{flex:1;overflow-y:auto;min-width:0}
 .dwrap{padding:20px 24px 56px}
 .dmain{min-width:0}
+.dwrap .back{display:none}
 
 .dhead{display:flex;align-items:center;gap:12px;margin-bottom:6px}
 .dhead .popwrap{margin-left:auto;position:relative;flex:none}
@@ -240,6 +241,16 @@ button.addr:hover{background:var(--clay-bg)}
   /* The counts are a nice-to-have, the wordmark is not. */
   .counts{display:none}
 }
+@media (max-width:840px){
+  /* One column: the list, or the contact you opened with a way back. */
+  .rail{width:100%;border-right:none}
+  .split.has-sel .rail{display:none}
+  .split:not(.has-sel) .detail{display:none}
+  .dwrap .back{display:inline-flex;margin-bottom:14px}
+  .dwrap{padding:16px 14px 50px}
+  .dsub{margin-left:0}
+  .dhead .popwrap{margin-left:auto}
+}
 </style>
 </head>
 <body>
@@ -261,6 +272,7 @@ button.addr:hover{background:var(--clay-bg)}
 <symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
 <symbol id="ic-note" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h6M8 17h4"/></symbol>
 <symbol id="ic-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1Z"/><path d="M4 22v-7"/></symbol>
+<symbol id="ic-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
 <symbol id="ic-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11.2v5M12 7.7h.01"/></symbol>
 <symbol id="ic-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 </defs></svg>
@@ -524,7 +536,8 @@ button.addr:hover{background:var(--clay-bg)}
         '<textarea id="noteBox" spellcheck="false">'+esc(c.notes||"")+'</textarea></div>' +
       '<div class="sfoot"><button class="linkbtn" data-act="del">'+ico("trash","i-sm")+'Delete</button></div>';
 
-    var main = '<div class="dhead"><h1>' +
+    var main = '<button class="btn btn-sm back" id="backBtn">'+ico("back","i-sm")+'All</button>' +
+      '<div class="dhead"><h1>' +
         (c.profileUrl
           ? '<a href="'+esc(c.profileUrl)+'" target="_blank" rel="noopener" title="Open profile">' +
             esc(c.name || "Untitled") + ico("link","i-sm") + '</a>'
@@ -645,7 +658,8 @@ button.addr:hover{background:var(--clay-bg)}
         return o;
       });
       loaded = true; failed = null;
-      if(!selId){
+      // On a phone the list comes first, so do not open anyone for them.
+      if(!selId && window.innerWidth > 840){
         var first = contacts.filter(passes).slice().sort(sortFn)[0];
         if(first) selId = first.id;
       }
@@ -676,7 +690,7 @@ button.addr:hover{background:var(--clay-bg)}
       body: JSON.stringify(row)}).then(function(r){
       if(!r.ok) throw new Error();
       contacts.push(row); selId = id;
-      renderAll();
+      el.split.classList.add("has-sel"); renderAll();
     }).catch(function(){ toast("Could not add"); });
   });
   el.list.addEventListener("click", function(e){
@@ -684,10 +698,12 @@ button.addr:hover{background:var(--clay-bg)}
     flushSave();
     infoOpen = false;
     selId = r.getAttribute("data-id");
+    el.split.classList.add("has-sel");
     renderList(); renderDetail(); el.detail.scrollTop = 0;
   });
 
   el.detail.addEventListener("click", function(e){
+    if(e.target.closest("#backBtn")){ el.split.classList.remove("has-sel"); return; }
     if(e.target.closest("#infoBtn")){ setInfo(!infoOpen); return; }
     var b = e.target.closest("[data-act]"); var c = get(selId);
     if(!b || !c) return;
@@ -708,7 +724,7 @@ button.addr:hover{background:var(--clay-bg)}
       fetch("/api/contacts/" + encodeURIComponent(c.id), {method:"DELETE"}).then(function(r){
         if(!r.ok) throw new Error();
         contacts = contacts.filter(function(x){ return x.id !== c.id; });
-        selId = null; renderAll();
+        selId = null; el.split.classList.remove("has-sel"); renderAll();
         toast("Deleted");
       }).catch(function(){ toast("Could not delete"); });
     }
