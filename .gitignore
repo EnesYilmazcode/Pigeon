@@ -1,0 +1,11 @@
+# Your pipeline. Never commit it.
+contacts.json
+*.tmp
+
+# Downloaded once by fetch_logos.py
+logos/
+
+# Runtime state
+.pigeon-session.json
+.pigeon-server.pid
+__pycache__/
