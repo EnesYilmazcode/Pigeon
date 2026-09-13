@@ -4,6 +4,9 @@ Serves app.html and a small JSON API over contacts.json, which sits next to
 this file, plus any logos fetch_logos.py cached beside it. Standard library
 only, binds to localhost only.
 
+The Claude Code pane in the page talks to /api/claude/*, which runs the claude
+CLI in this folder and streams its output straight back. See claude_bridge.py.
+
 Run:  python serve.py
 """
 import argparse
@@ -17,6 +20,8 @@ import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import claude_bridge
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 PAGE = os.path.join(HERE, "app.html")
 EXAMPLE = os.path.join(HERE, "contacts.example.json")
@@ -24,6 +29,7 @@ DEFAULT_PORT = 8642
 
 DATA = os.path.join(HERE, "contacts.json")
 _lock = threading.Lock()
+bridge = None  # made in main(), once DATA is known
 
 
 def load():
@@ -93,6 +99,9 @@ class Handler(BaseHTTPRequestHandler):
             with _lock:
                 self._json(200, load())
             return
+        if self.path == "/api/claude":
+            self._json(200, bridge.status())
+            return
         if self.path.startswith("/logos/"):
             self._logo(self.path[len("/logos/"):])
             return
@@ -125,8 +134,52 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(blob)
 
+    def _stream(self, events):
+        """NDJSON, one object per line, flushed as it arrives.
+
+        No Content-Length: the response is HTTP/1.0 and ends when the socket
+        closes, which is what lets the pane render a turn while it runs.
+        """
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Accel-Buffering", "no")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        for obj in events:
+            blob = (json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8")
+            try:
+                self.wfile.write(blob)
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                # Tab closed or navigated away mid-turn. Nothing is listening,
+                # so do not leave a claude process running behind it.
+                bridge.stop()
+                return
+
     def do_POST(self):
         if not self._guard():
+            return
+        if self.path == "/api/claude/chat":
+            try:
+                req = self._read_body()
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+                return
+            msg = (req.get("message") or "").strip()
+            if not msg:
+                self._json(400, {"error": "message is required"})
+                return
+            self._stream(bridge.run(msg, req.get("context") or ""))
+            return
+        if self.path == "/api/claude/stop":
+            self._json(200, {"stopped": bridge.stop()})
+            return
+        if self.path == "/api/claude/reset":
+            if bridge.turn.locked():
+                self._json(409, {"error": "a turn is still running"})
+                return
+            self._json(200, {"sessionId": bridge.reset()})
             return
         if self.path != "/api/contacts":
             self._send(404, b'{"error":"not found"}')
@@ -188,7 +241,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global DATA
+    global DATA, bridge
     ap = argparse.ArgumentParser(description="Run Pigeon on localhost.")
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)
     ap.add_argument("--data", default=DATA, help="path to contacts.json")
@@ -196,6 +249,8 @@ def main():
                     help="do not open the page on start")
     args = ap.parse_args()
     DATA = os.path.abspath(args.data)
+    bridge = claude_bridge.Bridge(
+        HERE, state=os.path.join(os.path.dirname(DATA), ".pigeon-session.json"))
 
     # First run. Give the page something to show; delete them whenever.
     seeded = not os.path.exists(DATA) and os.path.exists(EXAMPLE)
@@ -219,6 +274,9 @@ def main():
         print("  first run, copied the example contacts to %s" % DATA)
     print("  %d contacts loaded from %s" % (len(load()), DATA))
     print("  serving %s" % url)
+    print("  claude bridge: %s"
+          % ("ready" if bridge.status()["available"]
+             else "off, the claude command is not on PATH"))
     print("  press Ctrl+C to stop")
     sys.stdout.flush()
 
@@ -228,6 +286,8 @@ def main():
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nstopped")
+    finally:
+        bridge.stop()
 
 
 if __name__ == "__main__":

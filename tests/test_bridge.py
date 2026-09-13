@@ -2,46 +2,21 @@
 import json
 import os
 import shutil
-import stat
 import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.dirname(HERE))
 import claude_bridge  # noqa: E402
-
-FAKE = r'''
-import json, os, sys
-args = sys.argv[1:]
-with open(os.environ["FAKE_CLAUDE_LOG"], "a", encoding="utf-8") as f:
-    f.write(json.dumps(args) + "\n")
-if os.environ.get("FAKE_CLAUDE_MODE") == "gone":
-    sys.stderr.write("No conversation found\n")
-    sys.exit(1)
-sid = args[args.index("--resume" if "--resume" in args else "--session-id") + 1]
-said = "echo " + args[args.index("-p") + 1]
-print(json.dumps({"type": "system", "subtype": "init", "session_id": sid}))
-print(json.dumps({"type": "stream_event", "event": {"type": "content_block_delta",
-      "index": 0, "delta": {"type": "text_delta", "text": said}}}))
-print(json.dumps({"type": "result", "subtype": "success", "result": said}))
-'''
+import fakeclaude  # noqa: E402
 
 
 class BridgeTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
-        script = os.path.join(self.tmp, "fake_claude.py")
-        with open(script, "w", encoding="utf-8") as f:
-            f.write(FAKE)
-        if os.name == "nt":
-            exe = os.path.join(self.tmp, "claude.cmd")
-            with open(exe, "w") as f:
-                f.write('@"%s" "%s" %%*\n' % (sys.executable, script))
-        else:
-            exe = os.path.join(self.tmp, "claude")
-            with open(exe, "w") as f:
-                f.write("#!%s\n%s" % (sys.executable, FAKE))
-            os.chmod(exe, os.stat(exe).st_mode | stat.S_IEXEC)
+        exe = fakeclaude.install(self.tmp)
         self.log = os.path.join(self.tmp, "calls.jsonl")
         os.environ["FAKE_CLAUDE_LOG"] = self.log
         os.environ.pop("FAKE_CLAUDE_MODE", None)

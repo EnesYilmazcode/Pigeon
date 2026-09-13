@@ -14,6 +14,8 @@ import time
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fakeclaude  # noqa: E402
 
 
 def free_port():
@@ -28,6 +30,9 @@ class Server(unittest.TestCase):
     """Starts serve.py for each test. Holds no tests itself."""
     seed = [{"id": "ada-park", "name": "Ada Park", "status": "queued"}]
 
+    def env(self):
+        return None
+
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
         self.data = os.path.join(self.tmp, "contacts.json")
@@ -38,7 +43,7 @@ class Server(unittest.TestCase):
         self.proc = subprocess.Popen(
             [sys.executable, os.path.join(ROOT, "serve.py"), "--port", str(self.port),
              "--data", self.data, "--no-browser"],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            env=self.env(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         deadline = time.time() + 10
         while time.time() < deadline:
             try:
@@ -126,6 +131,47 @@ class ServerTest(Server):
 
         same = {"Origin": "http://localhost:%d" % self.port}
         self.assertEqual(self.call("POST", "/api/contacts", row, same)[0], 201)
+
+
+class ClaudeEndpointTest(Server):
+    def env(self):
+        bin_dir = os.path.join(self.tmp, "bin")
+        os.mkdir(bin_dir)
+        fakeclaude.install(bin_dir)
+        self.log = os.path.join(self.tmp, "calls.jsonl")
+        return dict(os.environ, PATH=bin_dir + os.pathsep + os.environ["PATH"],
+                    FAKE_CLAUDE_LOG=self.log)
+
+    def test_status(self):
+        code, s = self.call("GET", "/api/claude")
+        self.assertEqual(code, 200)
+        self.assertTrue(s["available"])
+        self.assertFalse(s["started"])
+
+    def test_chat_streams_lines(self):
+        code, raw = self.call("POST", "/api/claude/chat", {"message": "hi"})
+        self.assertEqual(code, 200)
+        events = [json.loads(line) for line in raw.decode("utf-8").splitlines()]
+        self.assertEqual(events[0]["subtype"], "turn_start")
+        self.assertEqual(events[-1], {"type": "desk", "subtype": "turn_end", "code": 0})
+        self.assertIn({"type": "result", "subtype": "success", "result": "echo hi"}, events)
+        self.assertTrue(self.call("GET", "/api/claude")[1]["started"])
+        # The session id lives beside the data, not in the checkout.
+        self.assertTrue(os.path.exists(os.path.join(self.tmp, ".pigeon-session.json")))
+
+        code, s = self.call("POST", "/api/claude/reset")
+        self.assertEqual(code, 200)
+        self.assertFalse(self.call("GET", "/api/claude")[1]["started"])
+
+    def test_chat_needs_a_message(self):
+        self.assertEqual(self.call("POST", "/api/claude/chat", {"message": " "})[0], 400)
+        self.assertEqual(self.call("POST", "/api/claude/stop")[1], {"stopped": False})
+
+    def test_other_sites_cannot_drive_claude(self):
+        evil = {"Origin": "http://evil.example"}
+        code, _ = self.call("POST", "/api/claude/chat", {"message": "rm -rf"}, evil)
+        self.assertEqual(code, 403)
+        self.assertFalse(os.path.exists(self.log))
 
 
 class FirstRunTest(Server):
