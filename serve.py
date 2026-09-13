@@ -10,6 +10,7 @@ import errno
 import io
 import json
 import os
+import shutil
 import sys
 import threading
 import webbrowser
@@ -17,6 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PAGE = os.path.join(HERE, "app.html")
+EXAMPLE = os.path.join(HERE, "contacts.example.json")
 DEFAULT_PORT = 8642
 
 DATA = os.path.join(HERE, "contacts.json")
@@ -140,6 +142,11 @@ def main():
     args = ap.parse_args()
     DATA = os.path.abspath(args.data)
 
+    # First run. Give the page something to show; delete them whenever.
+    seeded = not os.path.exists(DATA) and os.path.exists(EXAMPLE)
+    if seeded:
+        shutil.copyfile(EXAMPLE, DATA)
+
     url = "http://localhost:%d/" % args.port
     try:
         server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
@@ -153,6 +160,8 @@ def main():
         sys.exit(0)
 
     print("Pigeon")
+    if seeded:
+        print("  first run, copied the example contacts to %s" % DATA)
     print("  %d contacts loaded from %s" % (len(load()), DATA))
     print("  serving %s" % url)
     print("  press Ctrl+C to stop")

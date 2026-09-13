@@ -100,5 +100,20 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(self.call("GET", "/api/nope")[0], 404)
 
 
+class FirstRunTest(ServerTest):
+    seed = None  # no contacts.json yet
+
+    def test_copies_examples(self):
+        with open(os.path.join(ROOT, "contacts.example.json"), encoding="utf-8") as f:
+            example = json.load(f)
+        code, rows = self.call("GET", "/api/contacts")
+        self.assertEqual(code, 200)
+        self.assertEqual(rows, example)
+        self.assertEqual(self.on_disk(), example)
+
+    # The inherited tests assume the one-row seed.
+    test_list = test_add_update_delete = test_rejects_bad_writes = None
+
+
 if __name__ == "__main__":
     unittest.main()
