@@ -75,12 +75,29 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* The rail gives ground before the email does, but never below readable. */
 .rail{width:clamp(232px,22vw,308px);flex:none;border-right:1px solid var(--line);
   display:flex;flex-direction:column;min-height:0}
+.railtop{padding:10px 12px 9px;border-bottom:1px solid var(--line-soft);
+  flex:none;display:flex;flex-direction:column;gap:8px}
+.searchwrap{display:flex;align-items:center;gap:8px;padding:0 10px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--raised)}
+.searchwrap .i{color:var(--faint)}
+.searchwrap input{flex:1;min-width:0;border:none;background:none;padding:7px 0;font-size:13px}
+.searchwrap input::placeholder{color:var(--faint)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{border:1px solid var(--line);background:none;border-radius:20px;
+  padding:3px 9px;font-size:11.5px;color:var(--muted);cursor:pointer;
+  display:inline-flex;align-items:center;gap:4px}
+.chip:hover{color:var(--ink);border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--ivory)}
+.toolrow{display:flex;align-items:center;gap:5px;color:var(--faint)}
+.toolrow select{border:none;background:none;color:var(--muted);font-size:11.5px;cursor:pointer}
+.toolrow #co{min-width:0;max-width:140px;text-overflow:ellipsis}
 
 .list{overflow-y:auto;flex:1;padding-bottom:20px}
 .grouphead{display:flex;align-items:center;gap:7px;padding:12px 12px 5px;
   position:sticky;top:0;background:var(--ivory);border-bottom:1px solid var(--line-soft)}
 .grouphead .co{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
 .grouphead .n{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.grouphead .live{margin-left:auto;color:var(--moss);display:inline-flex;align-items:center}
 /* One line per person. The role is a click away, so the name gets the room. */
 .row{display:block;width:100%;text-align:left;border:none;background:none;
   padding:8px 12px;cursor:pointer;border-left:2px solid transparent}
@@ -93,6 +110,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .row .nm{font-size:13.5px;font-weight:500;flex:1;min-width:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .row .when{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;flex:none}
+.row.is-dead .nm{color:var(--faint)}
 .pill{font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;
   border-radius:20px;flex:none;font-weight:600;display:inline-flex;align-items:center;gap:4px}
 .p-queued{background:var(--clay-bg);color:var(--clay)}
@@ -172,6 +190,9 @@ button.addr:hover{background:var(--clay-bg)}
 <body>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></symbol>
+<symbol id="ic-sort" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></symbol>
+<symbol id="ic-case" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
 <symbol id="ic-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
 <symbol id="ic-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
 <symbol id="ic-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></symbol>
@@ -189,6 +210,25 @@ button.addr:hover{background:var(--clay-bg)}
 
   <div class="split" id="split">
     <nav class="rail">
+      <div class="railtop">
+        <div class="searchwrap">
+          <svg class="i i-sm"><use href="#ic-search"/></svg>
+          <input id="q" type="search" placeholder="Search name, company, email" autocomplete="off">
+        </div>
+        <div class="chips" id="chips"></div>
+        <div class="toolrow">
+          <svg class="i i-sm"><use href="#ic-sort"/></svg>
+          <select id="sort">
+            <option value="send">Send order</option>
+            <option value="company">Company</option>
+            <option value="status">Status</option>
+            <option value="date">Date sent</option>
+          </select>
+          <select id="co" aria-label="Filter by company">
+            <option value="">All companies</option>
+          </select>
+        </div>
+      </div>
       <div class="list" id="list"></div>
     </nav>
     <main class="detail" id="detail"></main>
@@ -203,11 +243,14 @@ button.addr:hover{background:var(--clay-bg)}
   var STATUSES = ["queued","sent","replied","converted","bounced","hold","dead"];
   var LABEL = {queued:"To send", sent:"Sent", replied:"Replied", converted:"Converted",
                bounced:"Bounced", hold:"Held", dead:"Dead"};
+  var FILTERS = [{k:"all",t:"All"},{k:"queued",t:"To send"},{k:"sent",t:"Sent"},{k:"noreply",t:"No reply"},
+                 {k:"live",t:"Req live"},{k:"dead",t:"Dead"}];
 
-  var contacts = [], selId = null, loaded = false, failed = null;
+  var contacts = [], selId = null, filter = "all", sortMode = "send";
+  var query = "", company = "", loaded = false, failed = null;
 
   var el = {};
-  ["list","detail","counts","split","toast"]
+  ["list","detail","counts","chips","q","sort","co","split","toast"]
     .forEach(function(k){ el[k] = document.getElementById(k); });
 
   function esc(s){
@@ -256,18 +299,47 @@ button.addr:hover{background:var(--clay-bg)}
   }
 
   function sortFn(a,b){
-    // sendOrder is the queue. Anyone without one sinks below all of it.
-    var oa = a.sendOrder || 9999, ob = b.sendOrder || 9999;
-    if(oa !== ob) return oa - ob;
+    if(sortMode === "send"){
+      // sendOrder is the queue. Anyone without one sinks below all of it.
+      var oa = a.sendOrder || 9999, ob = b.sendOrder || 9999;
+      if(oa !== ob) return oa - ob;
+      var ca = a.company || "", cb2 = b.company || "";
+      if(ca !== cb2) return ca.localeCompare(cb2);
+      return (a.name||"").localeCompare(b.name||"");
+    }
+    if(sortMode === "date"){
+      var da = a.sentAt || "", d2 = b.sentAt || "";
+      if(da !== d2) return da < d2 ? 1 : -1;
+      return (a.name||"").localeCompare(b.name||"");
+    }
+    if(sortMode === "status"){
+      var ia = STATUSES.indexOf(a.status), ib = STATUSES.indexOf(b.status);
+      if(ia !== ib) return ia - ib;
+      return (a.company||"").localeCompare(b.company||"");
+    }
     var ca = a.company || "", cb = b.company || "";
     if(ca !== cb) return ca.localeCompare(cb);
-    return (a.name||"").localeCompare(b.name||"");
+    return (a.rank||99) - (b.rank||99);
   }
   function passes(c){
-    return c.status !== "dead";
+    if(filter === "queued" && c.status !== "queued") return false;
+    if(filter === "sent" && ["sent","replied","converted"].indexOf(c.status) === -1) return false;
+    if(filter === "live" && c.reqStatus !== "live") return false;
+    if(filter === "dead" && ["dead","bounced"].indexOf(c.status) === -1) return false;
+    if(filter === "noreply" && c.status !== "sent") return false;
+    if(filter === "all" && c.status === "dead") return false;
+    if(company && c.company !== company) return false;
+    if(query){
+      var hay = ((c.name||"") + " " + (c.company||"") + " " + (c.role||"") + " " + (c.email||"")).toLowerCase();
+      if(hay.indexOf(query) === -1) return false;
+    }
+    return true;
   }
   function groupKey(c){
-    return c.sendWhen || "No order set";
+    if(sortMode === "send") return c.sendWhen || "No order set";
+    if(sortMode === "status") return LABEL[c.status] || c.status;
+    if(sortMode === "date") return c.sentAt ? "Sent " + shortDate(c.sentAt) : "Not sent";
+    return c.company || "Unfiled";
   }
 
   function renderCounts(){
@@ -282,11 +354,37 @@ button.addr:hover{background:var(--clay-bg)}
       '<span class="count"><i class="cd d-sent"></i><b>'+s+'</b>sent</span>' +
       '<span class="count"><i class="cd d-replied"></i><b>'+r+'</b>replied</span>';
   }
+  function renderChips(){
+    el.chips.innerHTML = FILTERS.map(function(f){
+      return '<button class="chip" data-f="'+f.k+'" aria-pressed="'+(filter===f.k)+'">'+esc(f.t)+'</button>';
+    }).join("");
+  }
+  // Company dropdown. Rebuilt only when the set of companies or their counts change,
+  // so a reload does not reset it under the cursor.
+  function renderCompanies(){
+    var n = {}, names = [];
+    contacts.forEach(function(c){
+      var k = c.company || ""; if(!k) return;
+      if(!n[k]){ n[k] = 0; names.push(k); }
+      n[k]++;
+    });
+    names.sort(function(a,b){ return a.localeCompare(b); });
+    if(company && !n[company]) company = "";
+    var sig = names.map(function(k){ return k + n[k]; }).join("|");
+    if(el.co.getAttribute("data-sig") !== sig){
+      el.co.setAttribute("data-sig", sig);
+      el.co.innerHTML = '<option value="">All companies</option>' + names.map(function(k){
+        return '<option value="'+esc(k)+'">'+esc(k)+' ('+n[k]+')</option>';
+      }).join("");
+    }
+    el.co.value = company;
+  }
   function renderList(){
     if(failed || !loaded){ el.list.innerHTML = ''; return; }
+    renderCompanies();
     var rows = contacts.filter(passes).slice().sort(sortFn);
     if(!rows.length){
-      el.list.innerHTML = '<div style="padding:18px 12px;color:var(--faint);font-size:12.5px">No contacts yet</div>';
+      el.list.innerHTML = '<div style="padding:18px 12px;color:var(--faint);font-size:12.5px">No matches</div>';
       return;
     }
     var html = "", last = null;
@@ -295,14 +393,17 @@ button.addr:hover{background:var(--clay-bg)}
       if(k !== last){
         last = k;
         var g = rows.filter(function(x){ return groupKey(x) === k; });
+        var live = sortMode === "company" && g.some(function(x){ return x.reqStatus === "live"; });
         html += '<div class="grouphead">' +
-          '<span class="co">'+esc(k)+'</span><span class="n">'+g.length+'</span></div>';
+          '<span class="co">'+esc(k)+'</span><span class="n">'+g.length+'</span>' +
+          (live ? '<span class="live" title="Open req">'+ico("case","i-sm")+'</span>' : '') +
+          '</div>';
       }
       var hover = c.name + (c.role ? ", " + c.role : "") + (c.company ? " at " + c.company : "");
-      html += '<button class="row" data-id="'+esc(c.id)+
+      html += '<button class="row'+(c.status==="dead"?" is-dead":"")+'" data-id="'+esc(c.id)+
         '" title="'+esc(hover)+'" aria-current="'+(c.id===selId)+'">' +
         '<div class="r1">' +
-        '<span class="ord">'+(c.sendOrder || "")+'</span>' +
+        (sortMode === "send" ? '<span class="ord">'+(c.sendOrder || "")+'</span>' : '') +
         '<span class="nm">'+esc(c.name)+'</span>' +
         (c.sentAt ? '<span class="when">'+esc(shortDate(c.sentAt))+'</span>' : '') +
         '<span class="pill p-'+esc(c.status)+'">'+esc(LABEL[c.status]||c.status)+'</span>' +
@@ -397,6 +498,13 @@ button.addr:hover{background:var(--clay-bg)}
     });
   }
 
+  el.chips.addEventListener("click", function(e){
+    var b = e.target.closest("[data-f]"); if(!b) return;
+    filter = b.getAttribute("data-f"); renderChips(); renderList();
+  });
+  el.q.addEventListener("input", function(){ query = el.q.value.trim().toLowerCase(); renderList(); });
+  el.sort.addEventListener("change", function(){ sortMode = el.sort.value; renderList(); });
+  el.co.addEventListener("change", function(){ company = el.co.value; renderList(); });
   el.list.addEventListener("click", function(e){
     var r = e.target.closest(".row"); if(!r) return;
     selId = r.getAttribute("data-id");
@@ -412,6 +520,7 @@ button.addr:hover{background:var(--clay-bg)}
     if(act === "copyemail") copy(c.email || "", "Address");
   });
 
+  renderChips();
   renderAll();
   load();
 })();
