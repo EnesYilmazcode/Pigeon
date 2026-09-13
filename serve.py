@@ -15,6 +15,7 @@ import io
 import json
 import os
 import shutil
+import socket
 import sys
 import threading
 import webbrowser
@@ -47,6 +48,10 @@ def save(rows):
     os.replace(tmp, DATA)
 
 
+class Server6(ThreadingHTTPServer):
+    address_family = socket.AF_INET6
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass  # quiet
@@ -70,7 +75,7 @@ class Handler(BaseHTTPRequestHandler):
         rebinding, and checking Origin stops a page elsewhere from posting here.
         """
         port = self.server.server_address[1]
-        hosts = ("localhost:%d" % port, "127.0.0.1:%d" % port)
+        hosts = ("localhost:%d" % port, "127.0.0.1:%d" % port, "[::1]:%d" % port)
         host = (self.headers.get("Host") or "").lower()
         origin = self.headers.get("Origin")
         if host in hosts and (origin is None or origin.lower() in
@@ -268,6 +273,14 @@ def main():
         if not args.no_browser:
             webbrowser.open(url)
         sys.exit(0)
+
+    # Browsers try ::1 first for "localhost". With nothing listening there,
+    # Windows spends about a quarter second failing over on every request.
+    try:
+        server6 = Server6(("::1", args.port), Handler)
+        threading.Thread(target=server6.serve_forever, daemon=True).start()
+    except OSError:
+        pass  # no IPv6 loopback here, and IPv4 still works
 
     print("Pigeon")
     if seeded:

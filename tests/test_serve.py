@@ -59,8 +59,8 @@ class Server(unittest.TestCase):
         self.proc.stdout.close()
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def call(self, method, path, body=None, headers=None):
-        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+    def call(self, method, path, body=None, headers=None, host="127.0.0.1"):
+        conn = http.client.HTTPConnection(host, self.port, timeout=5)
         h = {"Content-Type": "application/json"}
         h.update(headers or {})
         conn.request(method, path, json.dumps(body) if body is not None else None, h)
@@ -103,6 +103,19 @@ class ServerTest(Server):
         self.assertEqual(self.call("PUT", "/api/contacts/nobody", {"x": 1})[0], 404)
         self.assertEqual(self.call("DELETE", "/api/contacts/nobody")[0], 404)
         self.assertEqual(self.on_disk(), self.seed)
+
+    @unittest.skipUnless(socket.has_ipv6, "no IPv6")
+    def test_answers_on_ipv6_loopback(self):
+        for _ in range(20):  # it binds a moment after the IPv4 socket
+            try:
+                code, rows = self.call("GET", "/api/contacts", host="::1")
+                break
+            except OSError:
+                time.sleep(0.1)
+        else:
+            self.skipTest("IPv6 loopback is disabled on this machine")
+        self.assertEqual(code, 200)
+        self.assertEqual(rows, self.seed)
 
     def test_unknown_path(self):
         self.assertEqual(self.call("GET", "/api/nope")[0], 404)
