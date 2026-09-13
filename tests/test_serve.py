@@ -24,7 +24,8 @@ def free_port():
     return port
 
 
-class ServerTest(unittest.TestCase):
+class Server(unittest.TestCase):
+    """Starts serve.py for each test. Holds no tests itself."""
     seed = [{"id": "ada-park", "name": "Ada Park", "status": "queued"}]
 
     def setUp(self):
@@ -70,6 +71,8 @@ class ServerTest(unittest.TestCase):
         with open(self.data, encoding="utf-8") as f:
             return json.load(f)
 
+
+class ServerTest(Server):
     def test_list(self):
         code, rows = self.call("GET", "/api/contacts")
         self.assertEqual(code, 200)
@@ -99,8 +102,21 @@ class ServerTest(unittest.TestCase):
     def test_unknown_path(self):
         self.assertEqual(self.call("GET", "/api/nope")[0], 404)
 
+    def test_refuses_other_sites(self):
+        row = {"id": "mallory", "name": "Mallory"}
+        evil = {"Origin": "http://evil.example"}
+        self.assertEqual(self.call("POST", "/api/contacts", row, evil)[0], 403)
+        self.assertEqual(self.call("DELETE", "/api/contacts/ada-park", None, evil)[0], 403)
+        # DNS rebinding: the request arrives with someone else's hostname.
+        rebind = {"Host": "evil.example:%d" % self.port}
+        self.assertEqual(self.call("GET", "/api/contacts", None, rebind)[0], 403)
+        self.assertEqual(self.on_disk(), self.seed)
 
-class FirstRunTest(ServerTest):
+        same = {"Origin": "http://localhost:%d" % self.port}
+        self.assertEqual(self.call("POST", "/api/contacts", row, same)[0], 201)
+
+
+class FirstRunTest(Server):
     seed = None  # no contacts.json yet
 
     def test_copies_examples(self):
@@ -110,9 +126,6 @@ class FirstRunTest(ServerTest):
         self.assertEqual(code, 200)
         self.assertEqual(rows, example)
         self.assertEqual(self.on_disk(), example)
-
-    # The inherited tests assume the one-row seed.
-    test_list = test_add_update_delete = test_rejects_bad_writes = None
 
 
 if __name__ == "__main__":

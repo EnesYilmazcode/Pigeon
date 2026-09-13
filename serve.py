@@ -56,6 +56,22 @@ class Handler(BaseHTTPRequestHandler):
     def _json(self, code, obj):
         self._send(code, json.dumps(obj, ensure_ascii=False).encode("utf-8"))
 
+    def _guard(self):
+        """Refuse requests that a page on some other site could have sent.
+
+        Any tab in the browser can reach this port. Checking Host stops DNS
+        rebinding, and checking Origin stops a page elsewhere from posting here.
+        """
+        port = self.server.server_address[1]
+        hosts = ("localhost:%d" % port, "127.0.0.1:%d" % port)
+        host = (self.headers.get("Host") or "").lower()
+        origin = self.headers.get("Origin")
+        if host in hosts and (origin is None or origin.lower() in
+                              ["http://" + h for h in hosts]):
+            return True
+        self._json(403, {"error": "cross-site request refused"})
+        return False
+
     def _read_body(self):
         n = int(self.headers.get("Content-Length") or 0)
         if not n:
@@ -63,6 +79,8 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(n).decode("utf-8"))
 
     def do_GET(self):
+        if not self._guard():
+            return
         if self.path in ("/", "/index.html", "/app.html"):
             if not os.path.exists(PAGE):
                 self._send(500, b"app.html is missing", "text/plain; charset=utf-8")
@@ -77,6 +95,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, b'{"error":"not found"}')
 
     def do_POST(self):
+        if not self._guard():
+            return
         if self.path != "/api/contacts":
             self._send(404, b'{"error":"not found"}')
             return
@@ -98,6 +118,8 @@ class Handler(BaseHTTPRequestHandler):
         self._json(201, row)
 
     def do_PUT(self):
+        if not self._guard():
+            return
         if not self.path.startswith("/api/contacts/"):
             self._send(404, b'{"error":"not found"}')
             return
@@ -118,6 +140,8 @@ class Handler(BaseHTTPRequestHandler):
         self._json(404, {"error": "no contact with that id"})
 
     def do_DELETE(self):
+        if not self._guard():
+            return
         if not self.path.startswith("/api/contacts/"):
             self._send(404, b'{"error":"not found"}')
             return
