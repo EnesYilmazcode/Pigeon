@@ -1,7 +1,8 @@
 """Pigeon, a local cold outreach CRM.
 
 Serves app.html and a small JSON API over contacts.json, which sits next to
-this file. Standard library only, binds to localhost only.
+this file, plus any logos fetch_logos.py cached beside it. Standard library
+only, binds to localhost only.
 
 Run:  python serve.py
 """
@@ -92,7 +93,37 @@ class Handler(BaseHTTPRequestHandler):
             with _lock:
                 self._json(200, load())
             return
+        if self.path.startswith("/logos/"):
+            self._logo(self.path[len("/logos/"):])
+            return
         self._send(404, b'{"error":"not found"}')
+
+    TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml",
+             ".ico": "image/x-icon"}
+
+    def _logo(self, name):
+        name = name.split("?")[0]
+        # Only ever serve a bare filename out of the logos folder.
+        if not name or "/" in name or "\\" in name or name.startswith("."):
+            self._send(404, b"", "text/plain")
+            return
+        ext = os.path.splitext(name)[1].lower()
+        if ext not in self.TYPES:
+            self._send(404, b"", "text/plain")
+            return
+        path = os.path.join(os.path.dirname(DATA), "logos", name)
+        if not os.path.isfile(path):
+            self._send(404, b"", "text/plain")
+            return
+        with io.open(path, "rb") as f:
+            blob = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", self.TYPES[ext])
+        self.send_header("Content-Length", str(len(blob)))
+        self.send_header("Cache-Control", "max-age=86400")
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(blob)
 
     def do_POST(self):
         if not self._guard():

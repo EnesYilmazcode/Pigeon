@@ -102,6 +102,18 @@ class ServerTest(Server):
     def test_unknown_path(self):
         self.assertEqual(self.call("GET", "/api/nope")[0], 404)
 
+    def test_logos(self):
+        os.mkdir(os.path.join(self.tmp, "logos"))
+        with open(os.path.join(self.tmp, "logos", "globex.png"), "wb") as fh:
+            fh.write(b"\x89PNG fake")
+        with open(os.path.join(self.tmp, "secret.png"), "wb") as fh:
+            fh.write(b"not a logo")
+        self.assertEqual(self.call("GET", "/logos/globex.png"), (200, b"\x89PNG fake"))
+        self.assertEqual(self.call("GET", "/logos/missing.png")[0], 404)
+        self.assertEqual(self.call("GET", "/logos/globex.txt")[0], 404)
+        self.assertEqual(self.call("GET", "/logos/..%2Fsecret.png")[0], 404)
+        self.assertEqual(self.call("GET", "/logos/../secret.png")[0], 404)
+
     def test_refuses_other_sites(self):
         row = {"id": "mallory", "name": "Mallory"}
         evil = {"Origin": "http://evil.example"}

@@ -16,7 +16,7 @@
   --moss:#4F6B44; --moss-bg:#E6EDE1;
   --rust:#A63A30; --rust-bg:#F6E2DF;
   --ochre:#836318; --ochre-bg:#F2EBD8;
-  --focus:#D97757; --r:8px;
+  --focus:#D97757; --r:8px; --logo-tile:#FFFFFF;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
@@ -28,6 +28,7 @@
     --moss:#9DBE8C; --moss-bg:#26301F;
     --rust:#E08A80; --rust-bg:#3B211E;
     --ochre:#D3B36B; --ochre-bg:#352C15;
+    --logo-tile:#E9E6DE;
     color-scheme:dark;
   }
 }
@@ -39,6 +40,7 @@
   --moss:#9DBE8C; --moss-bg:#26301F;
   --rust:#E08A80; --rust-bg:#3B211E;
   --ochre:#D3B36B; --ochre-bg:#352C15;
+  --logo-tile:#E9E6DE;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -95,6 +97,15 @@ button,input,select,textarea{font:inherit;color:inherit}
   padding:3px;border-radius:5px;display:inline-flex;align-items:center;gap:5px;font-size:11.5px}
 .iconbtn:hover{background:var(--panel);color:var(--ink)}
 .iconbtn.accent{color:var(--clay);margin-left:auto}
+
+/* company marks: always on a light tile, most are dark marks on transparency */
+.logo{position:relative;flex:none;display:inline-grid;place-items:center;
+  background:var(--logo-tile);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.logo img{width:100%;height:100%;object-fit:contain;display:block;padding:1px}
+.logo.mono::after{content:attr(data-m);color:var(--clay);font-weight:700;
+  font-size:.62em;letter-spacing:-.02em;line-height:1}
+.logo-26{width:26px;height:26px;border-radius:6px;font-size:26px}
+.logo-36{width:36px;height:36px;border-radius:8px;font-size:36px}
 
 .list{overflow-y:auto;flex:1;padding-bottom:20px}
 .grouphead{display:flex;align-items:center;gap:7px;padding:12px 12px 5px;
@@ -157,7 +168,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .dhead h1{font-family:"Source Serif 4",Georgia,serif;font-size:25px;font-weight:600;
   margin:0;letter-spacing:-.015em;min-width:0;overflow-wrap:anywhere}
 .dsub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  color:var(--muted);font-size:13px;margin:0 0 12px}
+  color:var(--muted);font-size:13px;margin:0 0 12px 48px}
 .dsub .addr{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;
   color:var(--clay);overflow-wrap:anywhere;display:inline-flex;align-items:center;gap:5px}
 .dsub .sep{color:var(--line)}
@@ -376,6 +387,12 @@ button.addr:hover{background:var(--clay-bg)}
            "&su=" + encodeURIComponent(c.subject || "") +
            "&body=" + encodeURIComponent(c.body || "");
   }
+  function logoHtml(c, size){
+    var mono = (c.company || c.name || "?").trim().charAt(0).toUpperCase();
+    return '<span class="logo logo-' + size + (c.logo ? "" : " mono") +
+      '" data-m="' + esc(mono) + '" title="' + esc(c.company||"") + '">' +
+      (c.logo ? '<img class="logo-img" src="' + esc(c.logo) + '" alt="">' : '') + '</span>';
+  }
   function get(id){
     for(var i = 0; i < contacts.length; i++) if(contacts[i].id === id) return contacts[i];
     return null;
@@ -478,6 +495,7 @@ button.addr:hover{background:var(--clay-bg)}
         var g = rows.filter(function(x){ return groupKey(x) === k; });
         var live = sortMode === "company" && g.some(function(x){ return x.reqStatus === "live"; });
         html += '<div class="grouphead">' +
+          (sortMode === "company" ? logoHtml(g[0], 26) : '') +
           '<span class="co">'+esc(k)+'</span><span class="n">'+g.length+'</span>' +
           (live ? '<span class="live" title="Open req">'+ico("case","i-sm")+'</span>' : '') +
           '</div>';
@@ -487,6 +505,7 @@ button.addr:hover{background:var(--clay-bg)}
         '" title="'+esc(hover)+'" aria-current="'+(c.id===selId)+'">' +
         '<div class="r1">' +
         (sortMode === "send" ? '<span class="ord">'+(c.sendOrder || "")+'</span>' : '') +
+        (sortMode === "company" ? '' : logoHtml(c, 26)) +
         '<span class="nm">'+esc(c.name)+'</span>' +
         (c.sentAt ? '<span class="when">'+esc(shortDate(c.sentAt))+'</span>' : '') +
         '<span class="pill p-'+esc(c.status)+'">'+esc(LABEL[c.status]||c.status)+'</span>' +
@@ -537,7 +556,7 @@ button.addr:hover{background:var(--clay-bg)}
       '<div class="sfoot"><button class="linkbtn" data-act="del">'+ico("trash","i-sm")+'Delete</button></div>';
 
     var main = '<button class="btn btn-sm back" id="backBtn">'+ico("back","i-sm")+'All</button>' +
-      '<div class="dhead"><h1>' +
+      '<div class="dhead">' + logoHtml(c, 36) + '<h1>' +
         (c.profileUrl
           ? '<a href="'+esc(c.profileUrl)+'" target="_blank" rel="noopener" title="Open profile">' +
             esc(c.name || "Untitled") + ico("link","i-sm") + '</a>'
@@ -780,6 +799,15 @@ button.addr:hover{background:var(--clay-bg)}
   });
 
   window.addEventListener("beforeunload", function(){ flushSave(); });
+
+  // A logo that fails to load falls back to the monogram. 'error' does not
+  // bubble, so listen in the capture phase.
+  document.addEventListener("error", function(e){
+    var t = e.target;
+    if(t && t.tagName === "IMG" && t.className === "logo-img"){
+      t.parentNode.classList.add("mono"); t.remove();
+    }
+  }, true);
 
   renderChips();
   renderAll();
