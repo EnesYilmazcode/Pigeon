@@ -293,6 +293,14 @@ def main():
     print("  press Ctrl+C to stop")
     sys.stdout.flush()
 
+    # Pigeon.bat reads this to stop the server when its window closes.
+    pidfile = os.path.join(os.path.dirname(DATA), ".pigeon-server.pid")
+    try:
+        with io.open(pidfile, "w", encoding="utf-8") as f:
+            f.write(str(os.getpid()))
+    except OSError:
+        pass
+
     if not args.no_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
@@ -301,6 +309,10 @@ def main():
         print("\nstopped")
     finally:
         bridge.stop()
+        try:
+            os.remove(pidfile)
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":
