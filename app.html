@@ -78,12 +78,14 @@ button,input,select,textarea{font:inherit;color:inherit}
 .ghost:hover{background:var(--panel)}
 .ghost[aria-expanded="true"]{background:var(--panel);border-color:var(--muted)}
 
-/* Claude Code dock. Lives at the right edge of .split and holds a real
-   conversation with the CLI running in this folder. It stays a column and
+/* Claude Code dock. Lives at the right edge of .split, resizable, and holds a
+   real conversation with the CLI running in this folder. It stays a column and
    gives width back as the window narrows, rather than taking the screen. */
 .ccpane{width:min(var(--ccw,410px),34vw);flex:none;min-width:300px;max-width:72vw;
   border-left:1px solid var(--line);background:var(--panel);
   display:flex;flex-direction:column;min-height:0;position:relative}
+.ccgrip{position:absolute;left:-3px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:5}
+.ccgrip:hover{background:var(--focus);opacity:.3}
 
 .cchead{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 13px;
   border-bottom:1px solid var(--line);flex:none}
@@ -334,6 +336,7 @@ button.addr:hover{background:var(--clay-bg)}
   /* One column: the list, or the contact you opened with a way back. The
      dock is put away at this size, so its button would do nothing. */
   #ccBtn{display:none}
+  .ccgrip{display:none}
   .rail{width:100%;border-right:none}
   .split.has-sel .rail{display:none}
   .split:not(.has-sel) .detail{display:none}
@@ -408,6 +411,7 @@ button.addr:hover{background:var(--clay-bg)}
     <main class="detail" id="detail"></main>
 
     <aside class="ccpane" id="ccPane" hidden aria-label="Claude Code">
+      <div class="ccgrip" id="ccGrip" title="Drag to resize"></div>
       <div class="cchead">
         <span class="nm"><i class="ccdot" id="ccDot"></i>Claude Code</span>
         <span class="ccwhere" id="ccWhere">pigeon\</span>
@@ -446,7 +450,7 @@ button.addr:hover{background:var(--clay-bg)}
 
   var el = {};
   ["list","detail","counts","chips","q","sort","co","split","toast","addBtn","ccBtn",
-   "ccPane","ccLog","ccInput","ccGo","ccNew","ccClose","ccStat","ccWhere"]
+   "ccPane","ccGrip","ccLog","ccInput","ccGo","ccNew","ccClose","ccStat","ccWhere"]
     .forEach(function(k){ el[k] = document.getElementById(k); });
 
   function esc(s){
@@ -1226,10 +1230,16 @@ button.addr:hover{background:var(--clay-bg)}
     el.ccGo.title = el.ccGo.ariaLabel = "Send";
     ccGoIcon.setAttribute("href", "#ic-send");
   }
-  function ccToggle(on){
+  function ccToggle(on, keepPref){
     cc.open = (on == null) ? !cc.open : !!on;
     el.ccPane.hidden = !cc.open;
     el.ccBtn.setAttribute("aria-expanded", String(cc.open));
+    if(!keepPref){
+      try {
+        if(cc.open) localStorage.setItem("cc.open", "1");
+        else localStorage.removeItem("cc.open");
+      } catch(e){}
+    }
     fitBody();   // the draft column just changed width
     if(!cc.open) return;
     if(!el.ccLog.childNodes.length) ccEmpty();
@@ -1244,10 +1254,10 @@ button.addr:hover{background:var(--clay-bg)}
     var narrow = window.innerWidth <= CC_MIN;
     if(narrow && cc.open){
       ccStashed = true;
-      ccToggle(false);
+      ccToggle(false, true);      // keepPref: your preference is still "open"
     } else if(!narrow && ccStashed){
       ccStashed = false;
-      ccToggle(true);
+      ccToggle(true, true);
     }
   }
   window.addEventListener("resize", function(){ ccApplyWidth(); fitBody(); });
@@ -1273,6 +1283,27 @@ button.addr:hover{background:var(--clay-bg)}
     }).catch(function(){ toast("Could not start a new conversation"); });
   });
 
+  (function ccResizer(){
+    var w = 0;
+    try { w = parseInt(localStorage.getItem("cc.w"), 10) || 0; } catch(e){}
+    if(w) document.documentElement.style.setProperty("--ccw", w + "px");
+    var dragging = false;
+    el.ccGrip.addEventListener("mousedown", function(e){
+      dragging = true; e.preventDefault(); document.body.style.cursor = "col-resize";
+    });
+    window.addEventListener("mousemove", function(e){
+      if(!dragging) return;
+      var px = Math.max(300, Math.min(window.innerWidth - 380, window.innerWidth - e.clientX));
+      document.documentElement.style.setProperty("--ccw", px + "px");
+    });
+    window.addEventListener("mouseup", function(){
+      if(!dragging) return;
+      dragging = false; document.body.style.cursor = "";
+      fitBody();
+      try { localStorage.setItem("cc.w", parseInt(el.ccPane.offsetWidth, 10)); } catch(e){}
+    });
+  })();
+
   fetch("/api/claude").then(function(r){ return r.json(); }).then(function(s){
     var cwd = String(s.cwd || "");
     var leaf = cwd.split(/[\\/]/).filter(Boolean).pop();
@@ -1286,6 +1317,8 @@ button.addr:hover{background:var(--clay-bg)}
   renderChips();
   renderAll();
   load();
+  try { if(localStorage.getItem("cc.open")) ccToggle(true); } catch(e){}
+  ccApplyWidth();   // opening at a narrow size stashes it straight away
 })();
 </script>
 </body>
