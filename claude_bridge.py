@@ -122,8 +122,10 @@ class Bridge(object):
             context = (context or "").strip()
             prompt = (context + "\n\n" + message).strip() if context else message
 
+            # The prompt goes in on stdin. It has line breaks, and an npm-installed
+            # claude is a .cmd shim that would cut an argument off at the first.
             args = [
-                exe, "-p", prompt,
+                exe, "-p",
                 "--output-format", "stream-json",
                 "--verbose",
                 "--include-partial-messages",
@@ -142,7 +144,7 @@ class Bridge(object):
             try:
                 p = subprocess.Popen(
                     args, cwd=self.cwd,
-                    stdin=subprocess.DEVNULL,
+                    stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     encoding="utf-8", errors="replace", bufsize=1,
                     creationflags=_NO_WINDOW,
@@ -154,6 +156,11 @@ class Bridge(object):
 
             with self._plock:
                 self.proc = p
+            try:
+                p.stdin.write(prompt)
+                p.stdin.close()
+            except OSError:
+                pass  # it already exited; the error shows up below
 
             errbuf = []
             drain = threading.Thread(target=_drain, args=(p.stderr, errbuf))

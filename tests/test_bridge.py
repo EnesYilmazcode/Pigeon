@@ -48,7 +48,7 @@ class BridgeTest(unittest.TestCase):
         first = self.calls()[0]
         self.assertEqual(first[first.index("--session-id") + 1], sid)
         self.assertEqual(first[first.index("--permission-prompts") + 1], "none")
-        self.assertEqual(first[first.index("-p") + 1], "hello")
+        self.assertEqual([e["result"] for e in events if e["type"] == "result"], ["echo hello"])
 
         # A restarted server picks the same conversation back up.
         again = self.bridge()
@@ -57,6 +57,11 @@ class BridgeTest(unittest.TestCase):
         second = self.calls()[1]
         self.assertEqual(second[second.index("--resume") + 1], sid)
         self.assertNotIn("--session-id", second)
+
+    def test_multiline_prompt_arrives_whole(self):
+        events = list(self.bridge().run("the request", context="[some context]"))
+        said = [e["result"] for e in events if e["type"] == "result"]
+        self.assertEqual(said, ["echo [some context]\n\nthe request"])
 
     def test_lost_session_starts_fresh(self):
         b = self.bridge()

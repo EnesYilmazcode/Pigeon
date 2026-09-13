@@ -16,7 +16,7 @@ if os.environ.get("FAKE_CLAUDE_MODE") == "gone":
     sys.stderr.write("No conversation found\n")
     sys.exit(1)
 sid = args[args.index("--resume" if "--resume" in args else "--session-id") + 1]
-said = "echo " + args[args.index("-p") + 1]
+said = "echo " + sys.stdin.read()
 print(json.dumps({"type": "system", "subtype": "init", "session_id": sid}))
 print(json.dumps({"type": "stream_event", "event": {"type": "content_block_delta",
       "index": 0, "delta": {"type": "text_delta", "text": said}}}))

@@ -72,6 +72,84 @@ button,input,select,textarea{font:inherit;color:inherit}
 .count b{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .count .cd{width:7px;height:7px;border-radius:50%;flex:none}
 .spacer{flex:1}
+.ghost{background:none;border:1px solid var(--line);border-radius:var(--r);
+  padding:5px 10px;font-size:12.5px;color:var(--ink-2);cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px}
+.ghost:hover{background:var(--panel)}
+.ghost[aria-expanded="true"]{background:var(--panel);border-color:var(--muted)}
+
+/* Claude Code dock. Lives at the right edge of .split and holds a real
+   conversation with the CLI running in this folder. It stays a column and
+   gives width back as the window narrows, rather than taking the screen. */
+.ccpane{width:min(var(--ccw,410px),34vw);flex:none;min-width:300px;max-width:72vw;
+  border-left:1px solid var(--line);background:var(--panel);
+  display:flex;flex-direction:column;min-height:0;position:relative}
+
+.cchead{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 13px;
+  border-bottom:1px solid var(--line);flex:none}
+.cchead .nm{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.ccdot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.ccpane.busy .ccdot{background:var(--clay);animation:ccpulse 1.1s ease-in-out infinite}
+.ccpane.err .ccdot{background:var(--rust)}
+@keyframes ccpulse{0%,100%{opacity:1}50%{opacity:.2}}
+.ccwhere{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;
+  color:var(--faint);margin-left:auto;white-space:nowrap}
+
+.cclog{flex:1;overflow-y:auto;padding:14px 13px 10px;display:flex;
+  flex-direction:column;gap:11px;min-height:0}
+.ccmsg{font-size:13px;line-height:1.62;overflow-wrap:anywhere;white-space:pre-wrap}
+.ccmsg.me{background:var(--raised);border:1px solid var(--line);
+  border-radius:var(--r);padding:8px 11px}
+.ccmsg.ai{color:var(--ink-2)}
+.ccmsg.ai b{color:var(--ink);font-weight:600}
+.ccmsg code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;
+  background:var(--ivory);border:1px solid var(--line-soft);border-radius:4px;padding:0 3px}
+.ccmsg pre{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;
+  background:var(--ivory);border:1px solid var(--line);border-radius:6px;
+  padding:8px 10px;overflow-x:auto;margin:6px 0;white-space:pre-wrap}
+
+.cctool{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);
+  border-left:2px solid var(--line);padding:2px 0 2px 9px}
+.cctool .tn{font-weight:600;color:var(--ink-2);flex:none}
+.cctool .ta{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;
+  color:var(--faint);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cctool .st{margin-left:auto;flex:none;font-size:11px;color:var(--faint)}
+.cctool.run{border-left-color:var(--clay)}
+.cctool.ok{border-left-color:var(--moss)}
+.cctool.bad{border-left-color:var(--rust)}
+.cctool.bad .st{color:var(--rust)}
+
+.ccwait{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--faint)}
+.ccwait::before{content:"";width:10px;height:10px;border-radius:50%;flex:none;
+  border:1.6px solid var(--clay);border-top-color:transparent;
+  animation:ccspin .7s linear infinite}
+@keyframes ccspin{to{transform:rotate(360deg)}}
+
+.ccnote{font-size:11.5px;color:var(--faint)}
+.ccnote.bad{color:var(--rust);white-space:pre-wrap;background:var(--rust-bg);
+  border-radius:var(--r);padding:8px 10px;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;line-height:1.5}
+
+.cchint{margin:auto;display:grid;place-items:center}
+.ccmark{width:66px;height:66px;fill:var(--clay);opacity:.5}
+
+.ccform{flex:none;border-top:1px solid var(--line);padding:9px 10px 10px;
+  display:flex;flex-direction:column;gap:6px}
+.ccbox{position:relative}
+.ccbox textarea{width:100%;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--raised);padding:9px 42px 9px 11px;font-size:13px;resize:none;
+  min-height:40px;max-height:180px;line-height:1.5;overflow-y:auto;display:block}
+/* One button: it only appears once there is something to send, and turns into
+   the stop control for as long as the turn is running. */
+.ccgo{position:absolute;right:7px;bottom:7px;width:27px;height:27px;padding:0;
+  border:none;border-radius:50%;background:var(--clay);color:#fff;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center}
+.ccgo:hover{filter:brightness(1.08)}
+.ccgo.stop{background:var(--ink);color:var(--ivory)}
+.ccgo .i{stroke-width:2}
+.ccgo.stop .i{fill:currentColor;stroke:none}
+.ccstat{font-size:11px;color:var(--faint);min-height:14px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .split{display:flex;flex:1;min-height:0}
 /* The rail gives ground before the email does, but never below readable. */
@@ -249,11 +327,13 @@ button.addr:hover{background:var(--clay-bg)}
   .topbar{gap:14px;padding:10px 14px}
 }
 @media (max-width:760px){
-  /* The counts are a nice-to-have, the wordmark is not. */
+  /* The counts are a nice-to-have, the wordmark and the button are not. */
   .counts{display:none}
 }
 @media (max-width:840px){
-  /* One column: the list, or the contact you opened with a way back. */
+  /* One column: the list, or the contact you opened with a way back. The
+     dock is put away at this size, so its button would do nothing. */
+  #ccBtn{display:none}
   .rail{width:100%;border-right:none}
   .split.has-sel .rail{display:none}
   .split:not(.has-sel) .detail{display:none}
@@ -283,6 +363,9 @@ button.addr:hover{background:var(--clay-bg)}
 <symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
 <symbol id="ic-note" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h6M8 17h4"/></symbol>
 <symbol id="ic-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1Z"/><path d="M4 22v-7"/></symbol>
+<symbol id="ic-term" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+<symbol id="ic-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="ic-stop" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/></symbol>
 <symbol id="ic-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
 <symbol id="ic-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11.2v5M12 7.7h.01"/></symbol>
 <symbol id="ic-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
@@ -293,6 +376,8 @@ button.addr:hover{background:var(--clay-bg)}
     <div class="wordmark"><span class="dot"></span>Pigeon</div>
     <div class="counts" id="counts"></div>
     <div class="spacer"></div>
+    <button class="ghost" id="ccBtn" aria-expanded="false">
+      <svg class="i i-sm"><use href="#ic-term"/></svg>Claude Code</button>
   </header>
 
   <div class="split" id="split">
@@ -321,6 +406,27 @@ button.addr:hover{background:var(--clay-bg)}
       <div class="list" id="list"></div>
     </nav>
     <main class="detail" id="detail"></main>
+
+    <aside class="ccpane" id="ccPane" hidden aria-label="Claude Code">
+      <div class="cchead">
+        <span class="nm"><i class="ccdot" id="ccDot"></i>Claude Code</span>
+        <span class="ccwhere" id="ccWhere">pigeon\</span>
+        <button class="iconbtn" id="ccNew" title="New conversation" aria-label="New conversation">
+          <svg class="i i-sm"><use href="#ic-plus"/></svg></button>
+        <button class="iconbtn" id="ccClose" title="Close" aria-label="Close">
+          <svg class="i i-sm"><use href="#ic-x"/></svg></button>
+      </div>
+      <div class="cclog" id="ccLog"></div>
+      <div class="ccform">
+        <div class="ccbox">
+          <textarea id="ccInput" rows="1" spellcheck="false"
+            placeholder="Ask for a change"></textarea>
+          <button class="ccgo" id="ccGo" hidden title="Send" aria-label="Send">
+            <svg class="i i-sm"><use href="#ic-send"/></svg></button>
+        </div>
+        <span class="ccstat" id="ccStat"></span>
+      </div>
+    </aside>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -339,7 +445,8 @@ button.addr:hover{background:var(--clay-bg)}
   var query = "", company = "", loaded = false, failed = null;
 
   var el = {};
-  ["list","detail","counts","chips","q","sort","co","split","toast","addBtn"]
+  ["list","detail","counts","chips","q","sort","co","split","toast","addBtn","ccBtn",
+   "ccPane","ccLog","ccInput","ccGo","ccNew","ccClose","ccStat","ccWhere"]
     .forEach(function(k){ el[k] = document.getElementById(k); });
 
   function esc(s){
@@ -693,6 +800,7 @@ button.addr:hover{background:var(--clay-bg)}
     var b = e.target.closest("[data-f]"); if(!b) return;
     filter = b.getAttribute("data-f"); renderChips(); renderList();
   });
+  el.ccBtn.addEventListener("click", function(){ ccToggle(); });
   el.q.addEventListener("input", function(){ query = el.q.value.trim().toLowerCase(); renderList(); });
   el.sort.addEventListener("change", function(){ sortMode = el.sort.value; renderList(); });
   el.co.addEventListener("change", function(){ company = el.co.value; renderList(); });
@@ -808,6 +916,315 @@ button.addr:hover{background:var(--clay-bg)}
       t.parentNode.classList.add("mono"); t.remove();
     }
   }, true);
+
+  /* ============================ Claude Code dock ============================
+     POSTs to /api/claude/chat and reads the CLI's own JSON stream back a line
+     at a time, so a long turn shows its tool calls while it is still running. */
+
+  var cc = {open:false, running:false, blocks:{}, tools:{}, sawText:false,
+            wait:null, t0:0, secs:0, cost:null, stopped:false};
+  var ccPinned = true;
+
+  // The burst, drawn inline so the empty pane is a mark and not a wall of text.
+  var CCMARK = '<path d="M51.00 50.00 L55.60 14.60 A5.60 5.60 0 0 0 44.40 14.60 L49.00 50.00 Z"/><path d="M50.87 50.50 L67.05 31.67 A5.60 5.60 0 0 0 57.35 26.07 L49.13 49.50 Z"/><path d="M50.50 50.87 L83.46 37.15 A5.60 5.60 0 0 0 77.86 27.45 L49.50 49.13 Z"/><path d="M50.00 51.00 L74.40 55.60 A5.60 5.60 0 0 0 74.40 44.40 L50.00 49.00 Z"/><path d="M49.50 50.87 L77.86 72.55 A5.60 5.60 0 0 0 83.46 62.85 L50.50 49.13 Z"/><path d="M49.13 50.50 L57.35 73.93 A5.60 5.60 0 0 0 67.05 68.33 L50.87 49.50 Z"/><path d="M49.00 50.00 L44.40 85.40 A5.60 5.60 0 0 0 55.60 85.40 L51.00 50.00 Z"/><path d="M49.13 49.50 L32.95 68.33 A5.60 5.60 0 0 0 42.65 73.93 L50.87 50.50 Z"/><path d="M49.50 49.13 L16.54 62.85 A5.60 5.60 0 0 0 22.14 72.55 L50.50 50.87 Z"/><path d="M50.00 49.00 L25.60 44.40 A5.60 5.60 0 0 0 25.60 55.60 L50.00 51.00 Z"/><path d="M50.50 49.13 L22.14 27.45 A5.60 5.60 0 0 0 16.54 37.15 L49.50 50.87 Z"/><path d="M50.87 49.50 L42.65 26.07 A5.60 5.60 0 0 0 32.95 31.67 L49.13 50.50 Z"/>';
+
+  function ccNode(cls, text){
+    var d = document.createElement("div");
+    d.className = cls;
+    if(text != null) d.textContent = text;
+    return d;
+  }
+  function ccNudge(){ if(ccPinned) el.ccLog.scrollTop = el.ccLog.scrollHeight; }
+  // While a turn runs the spinner is the last child, so new rows go above it.
+  function ccAdd(node){
+    if(cc.wait && cc.wait.parentNode === el.ccLog) el.ccLog.insertBefore(node, cc.wait);
+    else el.ccLog.appendChild(node);
+    ccNudge();
+    return node;
+  }
+  function ccNote(text, bad){ return ccAdd(ccNode("ccnote" + (bad?" bad":""), text)); }
+
+  function md(s){
+    var out = esc(s);
+    out = out.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_, c){ return "<pre>"+c+"</pre>"; });
+    out = out.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+    out = out.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+    out = out.replace(/^\s*[-*] /gm, "• ");
+    return out;
+  }
+
+  function ccEmpty(){
+    el.ccLog.innerHTML = '<div class="cchint" aria-hidden="true">' +
+      '<svg class="ccmark" viewBox="0 0 100 100">' + CCMARK + '</svg></div>';
+  }
+
+  // One line of situational context, so "this one" and "today" mean something.
+  function ccContext(){
+    var bits = ["today is " + today()];
+    var c = get(selId);
+    if(c) bits.push('the contact open on screen is ' + (c.name||"?") + ' (id "' + c.id +
+                    '", ' + (c.company || "no company") + ', status ' + c.status + ')');
+    return "[Pigeon context, not the request: " + bits.join("; ") + ".]";
+  }
+
+  function ccToolRow(name, id){
+    var row = ccNode("cctool run");
+    var n = document.createElement("span"); n.className = "tn"; n.textContent = name || "tool";
+    var a = document.createElement("span"); a.className = "ta";
+    var s = document.createElement("span"); s.className = "st"; s.textContent = "…";
+    row.appendChild(n); row.appendChild(a); row.appendChild(s);
+    row._name = name; row._arg = a; row._st = s; row._nm = n;
+    ccAdd(row);
+    if(id) cc.tools[id] = row;
+    return row;
+  }
+  function toolArg(name, input){
+    input = input || {};
+    var f = String(input.file_path || input.notebook_path || "");
+    if(f) f = f.split(/[\\/]/).pop();
+    if(name === "Bash") return String(input.command||"").replace(/\s+/g," ").slice(0,120);
+    if(name === "Read" || name === "Write" || name === "Edit") return f;
+    if(name === "Glob" || name === "Grep") return String(input.pattern||"");
+    if(name === "WebSearch") return String(input.query||"");
+    if(name === "WebFetch") return String(input.url||"");
+    return "";
+  }
+  function ccFlat(c){
+    if(typeof c === "string") return c;
+    if(Array.isArray(c)) return c.map(function(x){ return (x && x.text) || ""; }).join("\n");
+    return "";
+  }
+
+  function ccEvent(d){
+    var t = d.type;
+    if(t === "stream_event") return ccStream(d.event || {});
+    if(t === "assistant")    return ccAssistant(d.message || {});
+    if(t === "user")         return ccResults(d.message || {});
+    if(t === "system")       return ccSystem(d);
+    if(t === "result")       return ccResult(d);
+    if(t === "desk")         return ccDesk(d);
+  }
+
+  function ccStream(ev){
+    if(ev.type === "message_start"){ cc.blocks = {}; return; }
+    if(ev.type === "content_block_start"){
+      var cb = ev.content_block || {};
+      if(cb.type === "text"){
+        cc.sawText = true;
+        cc.blocks[ev.index] = {kind:"text", raw:"", node:ccAdd(ccNode("ccmsg ai"))};
+      } else if(cb.type === "tool_use"){
+        cc.blocks[ev.index] = {kind:"tool", node:ccToolRow(cb.name, cb.id)};
+      }
+      return;
+    }
+    if(ev.type === "content_block_delta"){
+      var b = cc.blocks[ev.index], dl = ev.delta || {};
+      if(b && b.kind === "text" && dl.type === "text_delta"){
+        b.raw += dl.text || "";
+        b.node.innerHTML = md(b.raw);
+        ccNudge();
+      }
+    }
+  }
+
+  // The CLI also emits the finished blocks. Tool inputs only arrive complete
+  // here, and this is the fallback path if the delta stream ever goes quiet.
+  function ccAssistant(m){
+    (m.content || []).forEach(function(b){
+      if(b.type === "tool_use"){
+        var row = cc.tools[b.id] || ccToolRow(b.name, b.id);
+        row._name = b.name;
+        row._nm.textContent = b.name;
+        row._arg.textContent = toolArg(b.name, b.input);
+        row.title = JSON.stringify(b.input || {}).slice(0, 500);
+      } else if(b.type === "text" && !cc.sawText && String(b.text||"").trim()){
+        ccAdd(ccNode("ccmsg ai")).innerHTML = md(b.text);
+      }
+    });
+  }
+
+  function ccResults(m){
+    (m.content || []).forEach(function(b){
+      if(!b || b.type !== "tool_result") return;
+      var row = cc.tools[b.tool_use_id];
+      if(!row) return;
+      var bad = !!b.is_error;
+      row.className = "cctool " + (bad ? "bad" : "ok");
+      row._st.textContent = bad ? "failed" : "done";
+      var txt = ccFlat(b.content);
+      if(txt) row.title = txt.slice(0, 700);
+      if(bad) ccNote(row._name + " failed: " + txt.slice(0, 300), true);
+    });
+  }
+
+  function ccSystem(d){
+    if(d.subtype === "permission_denied"){
+      var row = cc.tools[d.tool_use_id];
+      if(row){ row.className = "cctool bad"; row._st.textContent = "not allowed"; }
+      ccNote((d.tool_name || "That tool") + " is not enabled for the pane. Use Claude " +
+             "Code in a terminal if you need it.", true);
+    }
+  }
+
+  function ccResult(d){
+    cc.secs = Math.round((d.duration_ms || (Date.now() - cc.t0)) / 100) / 10;
+    cc.cost = (typeof d.total_cost_usd === "number") ? d.total_cost_usd : null;
+
+    var txt = String(d.result == null ? "" : d.result).trim();
+    var bad = !!d.is_error || d.subtype !== "success";
+    // A turn can end without streaming a word: an API error, a refusal, a hit
+    // limit. The reason only lives on the result line, so show it either way
+    // rather than leaving the pane looking like nothing happened.
+    if(!cc.sawText && txt){
+      if(bad){ el.ccPane.classList.add("err"); ccNote(txt, true); }
+      else ccAdd(ccNode("ccmsg ai")).innerHTML = md(txt);
+    } else if(bad){
+      el.ccPane.classList.add("err");
+      ccNote(txt || d.subtype || "The turn did not finish.", true);
+    }
+  }
+
+  function ccDesk(d){
+    if(d.subtype === "stopped"){
+      ccNote(d.message || "Stopped.", false);
+      cc.stopped = true;
+    } else if(d.subtype === "error"){
+      el.ccPane.classList.add("err");
+      ccNote(d.message || "Something went wrong.", true);
+    }
+  }
+
+  function ccSubmit(){
+    var text = el.ccInput.value.trim();
+    if(!text || cc.running) return;
+    el.ccInput.value = ""; ccFit();
+    var hint = el.ccLog.querySelector(".cchint");
+    if(hint) hint.remove();
+    ccAdd(ccNode("ccmsg me", text));
+
+    // Your keystrokes go to disk first, or Claude reads a stale contacts.json.
+    flushSave();
+    cc.running = true; cc.blocks = {}; cc.tools = {};
+    cc.sawText = false; cc.stopped = false; cc.t0 = Date.now();
+    cc.secs = 0; cc.cost = null;
+    el.ccPane.classList.add("busy"); el.ccPane.classList.remove("err");
+    el.ccStat.textContent = "";
+    ccGoState();
+    cc.wait = ccNode("ccwait", "Thinking");
+    el.ccLog.appendChild(cc.wait); ccNudge();
+
+    fetch("/api/claude/chat", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({message:text, context:ccContext()})
+    }).then(function(r){
+      if(!r.ok || !r.body) throw new Error("HTTP " + r.status);
+      var reader = r.body.getReader(), dec = new TextDecoder(), buf = "";
+      return (function pump(){
+        return reader.read().then(function(res){
+          buf += dec.decode(res.value || new Uint8Array(), {stream: !res.done});
+          var i;
+          while((i = buf.indexOf("\n")) >= 0){
+            var line = buf.slice(0, i); buf = buf.slice(i + 1);
+            if(!line.trim()) continue;
+            try { ccEvent(JSON.parse(line)); } catch(e){}
+          }
+          if(res.done) return;
+          return pump();
+        });
+      })();
+    }).catch(function(){
+      el.ccPane.classList.add("err");
+      ccNote("Lost the connection to the Pigeon server. Is it still running?", true);
+    }).then(function(){
+      cc.running = false;
+      if(cc.wait){ cc.wait.remove(); cc.wait = null; }
+      el.ccPane.classList.remove("busy");
+      ccGoState();
+      var bits = [];
+      if(cc.stopped) bits.push("Stopped");
+      if(cc.secs) bits.push(cc.secs + "s");
+      if(cc.cost != null) bits.push("$" + cc.cost.toFixed(3));
+      el.ccStat.textContent = bits.join(" · ");
+    });
+  }
+
+  function ccFit(){
+    el.ccInput.style.height = "auto";
+    el.ccInput.style.height = Math.min(180, Math.max(40, el.ccInput.scrollHeight)) + "px";
+    ccGoState();
+  }
+  // One control in the corner of the box: nothing while it is empty, send once
+  // there is something to send, stop for as long as the turn is running.
+  var ccGoIcon = el.ccGo.querySelector("use");
+  function ccGoState(){
+    if(cc.running){
+      el.ccGo.hidden = false;
+      el.ccGo.className = "ccgo stop";
+      el.ccGo.title = el.ccGo.ariaLabel = "Stop";
+      ccGoIcon.setAttribute("href", "#ic-stop");
+      return;
+    }
+    el.ccGo.hidden = !el.ccInput.value.trim();
+    el.ccGo.className = "ccgo";
+    el.ccGo.title = el.ccGo.ariaLabel = "Send";
+    ccGoIcon.setAttribute("href", "#ic-send");
+  }
+  function ccToggle(on){
+    cc.open = (on == null) ? !cc.open : !!on;
+    el.ccPane.hidden = !cc.open;
+    el.ccBtn.setAttribute("aria-expanded", String(cc.open));
+    fitBody();   // the draft column just changed width
+    if(!cc.open) return;
+    if(!el.ccLog.childNodes.length) ccEmpty();
+    ccFit(); el.ccInput.focus();
+  }
+
+  // Under this the window is one column of content, so the dock is put away
+  // rather than shrunk into a sliver or thrown over the top of everything.
+  // Widen the window and it comes back, transcript and all.
+  var CC_MIN = 840, ccStashed = false;
+  function ccApplyWidth(){
+    var narrow = window.innerWidth <= CC_MIN;
+    if(narrow && cc.open){
+      ccStashed = true;
+      ccToggle(false);
+    } else if(!narrow && ccStashed){
+      ccStashed = false;
+      ccToggle(true);
+    }
+  }
+  window.addEventListener("resize", function(){ ccApplyWidth(); fitBody(); });
+
+  el.ccLog.addEventListener("scroll", function(){
+    ccPinned = el.ccLog.scrollTop + el.ccLog.clientHeight >= el.ccLog.scrollHeight - 24;
+  });
+  el.ccGo.addEventListener("click", function(){
+    if(cc.running) fetch("/api/claude/stop", {method:"POST"}).catch(function(){});
+    else ccSubmit();
+  });
+  el.ccInput.addEventListener("input", ccFit);
+  el.ccInput.addEventListener("keydown", function(e){
+    if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); ccSubmit(); }
+  });
+  el.ccClose.addEventListener("click", function(){ ccToggle(false); });
+  el.ccNew.addEventListener("click", function(){
+    if(cc.running){ toast("Claude is still working"); return; }
+    fetch("/api/claude/reset", {method:"POST"}).then(function(r){
+      if(!r.ok) throw new Error();
+      ccEmpty(); el.ccPane.classList.remove("err");
+      el.ccStat.textContent = "";
+    }).catch(function(){ toast("Could not start a new conversation"); });
+  });
+
+  fetch("/api/claude").then(function(r){ return r.json(); }).then(function(s){
+    var cwd = String(s.cwd || "");
+    var leaf = cwd.split(/[\\/]/).filter(Boolean).pop();
+    if(leaf) el.ccWhere.textContent = leaf + (cwd.indexOf("\\") >= 0 ? "\\" : "/");
+    if(!s.available){
+      el.ccPane.classList.add("err");
+      el.ccStat.textContent = "claude is not on PATH";
+    }
+  }).catch(function(){});
 
   renderChips();
   renderAll();
