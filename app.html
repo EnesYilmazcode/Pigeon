@@ -157,26 +157,44 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* The rail gives ground before the email does, but never below readable. */
 .rail{width:clamp(232px,22vw,308px);flex:none;border-right:1px solid var(--line);
   display:flex;flex-direction:column;min-height:0}
-.railtop{padding:10px 12px 9px;border-bottom:1px solid var(--line-soft);
-  flex:none;display:flex;flex-direction:column;gap:8px}
-.searchwrap{display:flex;align-items:center;gap:8px;padding:0 10px;
+/* Two short rows: search with its two buttons, then one line of chips. Sort
+   and company live in a menu, because they change far less often. */
+.railtop{padding:8px 10px 7px;border-bottom:1px solid var(--line-soft);
+  flex:none;display:flex;flex-direction:column;gap:6px}
+.railrow{display:flex;align-items:center;gap:5px;position:relative}
+.searchwrap{flex:1;min-width:0;display:flex;align-items:center;gap:7px;padding:0 9px;
   border:1px solid var(--line);border-radius:var(--r);background:var(--raised)}
 .searchwrap .i{color:var(--faint)}
-.searchwrap input{flex:1;min-width:0;border:none;background:none;padding:7px 0;font-size:13px}
+.searchwrap input{flex:1;min-width:0;border:none;background:none;padding:5px 0;font-size:13px}
 .searchwrap input::placeholder{color:var(--faint)}
-.chips{display:flex;flex-wrap:wrap;gap:4px}
-.chip{border:1px solid var(--line);background:none;border-radius:20px;
-  padding:3px 9px;font-size:11.5px;color:var(--muted);cursor:pointer;
+.sqbtn{position:relative;flex:none;width:30px;height:30px;padding:0;cursor:pointer;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--raised);
+  color:var(--muted);display:inline-flex;align-items:center;justify-content:center}
+.sqbtn:hover,.sqbtn[aria-expanded="true"]{color:var(--ink);border-color:var(--muted)}
+.sqbtn.add{color:var(--clay)}
+/* a dot on the view button while sort or company is off its default */
+.sqbtn.set::after{content:"";position:absolute;top:4px;right:4px;width:6px;height:6px;
+  border-radius:50%;background:var(--clay)}
+.menu{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:30;
+  background:var(--raised);border:1px solid var(--line);border-radius:10px;
+  padding:4px 10px;box-shadow:0 10px 30px rgba(20,20,19,.16)}
+.mrow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--muted)}
+.mrow + .mrow{border-top:1px solid var(--line-soft)}
+.mrow span{width:58px;flex:none}
+.mrow select{flex:1;min-width:0;border:1px solid transparent;border-radius:6px;
+  padding:3px 4px;background:none;font-size:12.5px;color:var(--ink);cursor:pointer}
+.mrow select:hover{border-color:var(--line)}
+.chips{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;margin:0 -10px;padding:0 10px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:none;background:none;border-radius:20px;
+  padding:2px 8px;font-size:11.5px;color:var(--muted);cursor:pointer;white-space:nowrap;
   display:inline-flex;align-items:center;gap:4px}
-.chip:hover{color:var(--ink);border-color:var(--muted)}
-.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--ivory)}
-.toolrow{display:flex;align-items:center;gap:5px;color:var(--faint)}
-.toolrow select{border:none;background:none;color:var(--muted);font-size:11.5px;cursor:pointer}
-.toolrow #co{min-width:0;max-width:140px;text-overflow:ellipsis}
+.chip:hover{color:var(--ink);background:var(--panel)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--ivory)}
+.chip .x{opacity:.6;font-size:13px;line-height:1}
 .iconbtn{border:none;background:none;color:var(--muted);cursor:pointer;
   padding:3px;border-radius:5px;display:inline-flex;align-items:center;gap:5px;font-size:11.5px}
 .iconbtn:hover{background:var(--panel);color:var(--ink)}
-.iconbtn.accent{color:var(--clay);margin-left:auto}
 
 /* company marks: always on a light tile, most are dark marks on transparency */
 .logo{position:relative;flex:none;display:inline-grid;place-items:center;
@@ -235,9 +253,9 @@ button,input,select,textarea{font:inherit;color:inherit}
   box-shadow:0 10px 30px rgba(20,20,19,.16);
   max-height:min(72vh,600px);overflow-y:auto}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .pop{box-shadow:0 10px 32px rgba(0,0,0,.55)}
+  :root:not([data-theme="light"]) .pop,:root:not([data-theme="light"]) .menu{box-shadow:0 10px 32px rgba(0,0,0,.55)}
 }
-:root[data-theme="dark"] .pop{box-shadow:0 10px 32px rgba(0,0,0,.55)}
+:root[data-theme="dark"] .pop,:root[data-theme="dark"] .menu{box-shadow:0 10px 32px rgba(0,0,0,.55)}
 
 /* Role and company are edited where they are already shown. */
 .ed{border:1px solid transparent;border-radius:4px;padding:1px 4px;margin:0 -4px;
@@ -353,7 +371,7 @@ button.addr:hover{background:var(--clay-bg)}
 <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></symbol>
 <symbol id="ic-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
 <symbol id="ic-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 6V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/></symbol>
-<symbol id="ic-sort" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></symbol>
+<symbol id="ic-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
 <symbol id="ic-case" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
 <symbol id="ic-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
 <symbol id="ic-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
@@ -386,25 +404,28 @@ button.addr:hover{background:var(--clay-bg)}
   <div class="split" id="split">
     <nav class="rail">
       <div class="railtop">
-        <div class="searchwrap">
-          <svg class="i i-sm"><use href="#ic-search"/></svg>
-          <input id="q" type="search" placeholder="Search name, company, email" autocomplete="off">
+        <div class="railrow">
+          <div class="searchwrap">
+            <svg class="i i-sm"><use href="#ic-search"/></svg>
+            <input id="q" type="search" placeholder="Search" title="Name, company, role or address" autocomplete="off">
+          </div>
+          <button class="sqbtn" id="viewBtn" aria-expanded="false" title="Sort and company" aria-label="Sort and company">
+            <svg class="i i-sm"><use href="#ic-sliders"/></svg></button>
+          <button class="sqbtn add" id="addBtn" title="Add a contact" aria-label="Add a contact">
+            <svg class="i i-sm"><use href="#ic-plus"/></svg></button>
+          <div class="menu" id="viewMenu" hidden>
+            <label class="mrow"><span>Sort</span>
+              <select id="sort">
+                <option value="send">Send order</option>
+                <option value="company">Company</option>
+                <option value="status">Status</option>
+                <option value="date">Date sent</option>
+              </select></label>
+            <label class="mrow"><span>Company</span>
+              <select id="co"><option value="">All companies</option></select></label>
+          </div>
         </div>
         <div class="chips" id="chips"></div>
-        <div class="toolrow">
-          <svg class="i i-sm"><use href="#ic-sort"/></svg>
-          <select id="sort">
-            <option value="send">Send order</option>
-            <option value="company">Company</option>
-            <option value="status">Status</option>
-            <option value="date">Date sent</option>
-          </select>
-          <select id="co" aria-label="Filter by company">
-            <option value="">All companies</option>
-          </select>
-          <button class="iconbtn accent" id="addBtn">
-            <svg class="i i-sm"><use href="#ic-plus"/></svg>Add</button>
-        </div>
       </div>
       <div class="list" id="list"></div>
     </nav>
@@ -442,14 +463,15 @@ button.addr:hover{background:var(--clay-bg)}
   var STATUSES = ["queued","sent","replied","converted","bounced","hold","dead"];
   var LABEL = {queued:"To send", sent:"Sent", replied:"Replied", converted:"Converted",
                bounced:"Bounced", hold:"Held", dead:"Dead"};
-  var FILTERS = [{k:"all",t:"All"},{k:"queued",t:"To send"},{k:"sent",t:"Sent"},{k:"noreply",t:"No reply"},
+  // No chip pressed means everyone except the dead. Press one again to let go.
+  var FILTERS = [{k:"queued",t:"To send"},{k:"sent",t:"Sent"},{k:"noreply",t:"No reply"},
                  {k:"live",t:"Req live"},{k:"dead",t:"Dead"}];
 
   var contacts = [], selId = null, filter = "all", sortMode = "send";
   var query = "", company = "", loaded = false, failed = null;
 
   var el = {};
-  ["list","detail","counts","chips","q","sort","co","split","toast","addBtn","ccBtn",
+  ["list","detail","counts","chips","q","sort","co","viewBtn","viewMenu","split","toast","addBtn","ccBtn",
    "ccPane","ccGrip","ccLog","ccInput","ccGo","ccNew","ccClose","ccStat","ccWhere"]
     .forEach(function(k){ el[k] = document.getElementById(k); });
 
@@ -566,9 +588,15 @@ button.addr:hover{background:var(--clay-bg)}
       '<span class="count"><i class="cd d-replied"></i><b>'+r+'</b>replied</span>';
   }
   function renderChips(){
-    el.chips.innerHTML = FILTERS.map(function(f){
-      return '<button class="chip" data-f="'+f.k+'" aria-pressed="'+(filter===f.k)+'">'+esc(f.t)+'</button>';
-    }).join("");
+    // A company filter lives in the menu, so it shows here too or it is easy to forget.
+    el.chips.innerHTML = (company
+        ? '<button class="chip" data-clear="co" aria-pressed="true" title="Show all companies">' +
+          esc(company) + '<span class="x" aria-hidden="true">×</span></button>'
+        : '') +
+      FILTERS.map(function(f){
+        return '<button class="chip" data-f="'+f.k+'" aria-pressed="'+(filter===f.k)+'">'+esc(f.t)+'</button>';
+      }).join("");
+    el.viewBtn.classList.toggle("set", sortMode !== "send" || !!company);
   }
   // Company dropdown. Rebuilt only when the set of companies or their counts change,
   // so a reload does not reset it under the cursor.
@@ -580,7 +608,7 @@ button.addr:hover{background:var(--clay-bg)}
       n[k]++;
     });
     names.sort(function(a,b){ return a.localeCompare(b); });
-    if(company && !n[company]) company = "";
+    if(company && !n[company]){ company = ""; renderChips(); }
     var sig = names.map(function(k){ return k + n[k]; }).join("|");
     if(el.co.getAttribute("data-sig") !== sig){
       el.co.setAttribute("data-sig", sig);
@@ -801,13 +829,23 @@ button.addr:hover{background:var(--clay-bg)}
   }
 
   el.chips.addEventListener("click", function(e){
+    if(e.target.closest("[data-clear]")){ company = ""; renderChips(); renderList(); return; }
     var b = e.target.closest("[data-f]"); if(!b) return;
-    filter = b.getAttribute("data-f"); renderChips(); renderList();
+    var k = b.getAttribute("data-f");
+    filter = (filter === k) ? "all" : k;
+    renderChips(); renderList();
   });
+  var viewOpen = false;
+  function setView(on){
+    viewOpen = !!on;
+    el.viewMenu.hidden = !viewOpen;
+    el.viewBtn.setAttribute("aria-expanded", String(viewOpen));
+  }
+  el.viewBtn.addEventListener("click", function(){ setView(!viewOpen); });
   el.ccBtn.addEventListener("click", function(){ ccToggle(); });
   el.q.addEventListener("input", function(){ query = el.q.value.trim().toLowerCase(); renderList(); });
-  el.sort.addEventListener("change", function(){ sortMode = el.sort.value; renderList(); });
-  el.co.addEventListener("change", function(){ company = el.co.value; renderList(); });
+  el.sort.addEventListener("change", function(){ sortMode = el.sort.value; renderChips(); renderList(); });
+  el.co.addEventListener("change", function(){ company = el.co.value; renderChips(); renderList(); });
   el.addBtn.addEventListener("click", function(){
     var name = prompt("Name");
     if(!name) return;
@@ -887,6 +925,7 @@ button.addr:hover{background:var(--clay-bg)}
   // otherwise land on nothing.
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape" && infoOpen) setInfo(false);
+    if(e.key === "Escape" && viewOpen) setView(false);
   });
   // Belt and braces for browsers that ignore contenteditable="plaintext-only".
   el.detail.addEventListener("paste", function(e){
@@ -898,6 +937,7 @@ button.addr:hover{background:var(--clay-bg)}
   // Anywhere outside the panel closes it, so it never sits over the draft.
   document.addEventListener("mousedown", function(e){
     if(infoOpen && !e.target.closest(".popwrap")) setInfo(false);
+    if(viewOpen && !e.target.closest(".railrow")) setView(false);
   });
   el.detail.addEventListener("blur", function(e){
     if(pending) flushSave();

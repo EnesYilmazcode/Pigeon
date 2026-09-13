@@ -40,9 +40,10 @@ rest of the page works without it.
 
 ## What it does
 
-- **Send queue.** Contacts are grouped by when they should go out, in order. Sort
-  by company, status or date sent, search, or filter to what is left to send,
-  sent with no reply, has an open posting, or bounced.
+- **Send queue.** Contacts are grouped by when they should go out, in order.
+  Search, tap a chip to see only what is left to send, sent with no reply, has an
+  open posting, or bounced, and use the sliders button to sort by company, status
+  or date, or to narrow the list to one company.
 - **Drafts.** A subject and body for every person, edited in place and saved as
   you type. Copy it, or open a Gmail compose tab that is already filled in.
 - **Tracking.** Status, sent and follow-up dates, the job posting, a profile link
